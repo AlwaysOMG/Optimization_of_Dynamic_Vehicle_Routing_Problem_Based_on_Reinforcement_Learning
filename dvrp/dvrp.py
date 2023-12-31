@@ -2,7 +2,7 @@ import numpy as np
 import random
 import copy
 
-import event as et
+import dvrp.event as et
 
 class DVRP:
     time_upper_bound = 100000
@@ -72,8 +72,8 @@ class DVRP:
                 elif i > j:
                     dist_matrix[i, j] = dist_matrix[j, i]
                 else:
-                    distance = ((self.customer_data[i, 0] - self.customer_data[j, 0])**2 +\
-                                (self.customer_data[i, 1] - self.customer_data[j, 1])**2)**0.5
+                    distance = ((self.customer_data[i, 1] - self.customer_data[j, 1])**2 +\
+                                (self.customer_data[i, 2] - self.customer_data[j, 2])**2)**0.5
                     dist_matrix[i, j] = distance
 
         travel_time_mean = copy.deepcopy(dist_matrix)
@@ -112,10 +112,13 @@ class DVRP:
         travel_time_matrix = np.zeros((self.customer_num, self.customer_num), dtype=float)
         for i in range(self.customer_num):
             for j in range(self.customer_num):
+                travel_time_matrix[i, j] = self.travel_time_parameter[i, j, 0]
+                """
                 mean = self.travel_time_parameter[i, j, 0]
                 std = self.travel_time_parameter[i, j, 1]
                 travel_time = np.random.normal(mean, std, 1)
                 travel_time_matrix[i, j] = travel_time
+                """
         
         return travel_time_matrix
     
@@ -138,4 +141,7 @@ class DVRP:
 if __name__ == '__main__':
     file_path = "./instance/Vrp-Set-Solomon/C101.txt"
     prob = DVRP(file_path, 0.1, 20)
+    print(prob.online_customer_data)
+    print(prob.online_vehicle_data)
+    print(prob.online_travel_time_data)
     

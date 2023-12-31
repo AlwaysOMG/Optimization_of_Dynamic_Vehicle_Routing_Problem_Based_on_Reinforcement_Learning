@@ -4,6 +4,9 @@ class Event:
     def __init__(self, time):
         self.time = time
 
+    def __lt__(self, other):
+        return self.time < other.time
+    
     def process(self):
         pass
 
@@ -46,7 +49,7 @@ class EventManager:
         self.current_time = 0
 
     def add_event(self, event):
-        heapq.heappush(self.event_queue, (event.time, event))
+        heapq.heappush(self.event_queue, event)
 
     def process_event(self):
         time, event = heapq.heappop(self.event_queue)
