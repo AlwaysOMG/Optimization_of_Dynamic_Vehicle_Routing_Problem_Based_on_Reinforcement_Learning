@@ -23,44 +23,61 @@ def check_capacity(route, c_data, capacity):
         return False
     return True
 
-def check_time_window(route, c_data, t_data):
+def check_time_window(route, c_data, t_data, wait_time):
     t = 0
     previous_node = 0
     for customer in route:
         t += t_data[previous_node, customer]
         
-        if t < c_data[customer, 4] or t > c_data[customer, 5]:
+        if t > c_data[0, 5] or t > c_data[customer, 5]:
             return False
-        else:
-            t += c_data[customer, 6]
+        if t + wait_time >= c_data[customer, 4]:
+            t = t + c_data[customer, 6] if wait_time == 0 \
+            else c_data[customer, 4] + c_data[customer, 6]
             previous_node = customer
+        else:
+            return False
+
     return True
 
 def saving_method(c_data, capacity, t_data):
-    customer_num = len(c_data)
     savings = cal_savings(t_data)
-
     indices = np.argsort(-savings, axis=None)
-    idx_i, idx_j = np.unravel_index(indices, t_data.shape)
+    savings_i, savings_j = np.unravel_index(indices, t_data.shape)
 
-    flag = 0
+    customer_num = len(c_data)-1
+    available_customer_num = len(np.where(c_data[:, 7] == 0)[0])-1
     routes = []
-    while(flag < len(idx_i)):
-        customer_i, customer_j = idx_i[flag], idx_j[flag]
+    wait_time = 0
+    flag = 0
+    while(flag < len(savings_i)):
+        customer_i, customer_j = savings_i[flag], savings_j[flag]
+        if c_data[customer_i, 7] != 0 or c_data[customer_j, 7] != 0:
+            flag += 1
+            continue
 
         if savings[customer_i, customer_j] == -1:
-            break
+            assign_customer_num = sum(len(r) for r in routes)
+            if assign_customer_num == available_customer_num:
+                break
+            elif assign_customer_num > 0.9 * available_customer_num:
+                for i in range(1, customer_num):
+                    if c_data[i, 7] == 0 and c_data[i, 8] == 0:
+                        routes.append([i])
+                        route_idx = len(routes) - 1
+                        c_data[i, 8] = 1 + route_idx
+                break
+            else:
+                wait_time += 10
+                flag = 0
+                continue                    
 
         if c_data[customer_i, 8] == 0 and c_data[customer_j, 8] == 0:
-            for i in range(2):
-                if i == 0:
-                    route = [customer_i, customer_j]
-                else:
-                    route = [customer_j, customer_i]
-                
-                if check_capacity(route, c_data, capacity) and check_time_window(route, c_data, t_data):
+            for case in range(2):
+                route = [customer_i, customer_j] if case == 0 else [customer_j, customer_i]                
+                if check_capacity(route, c_data, capacity) and check_time_window(route, c_data, t_data, wait_time):
                     routes.append(route)
-                    route_idx = len(routes)-1
+                    route_idx = len(routes) - 1
                     c_data[customer_i, 8] = 1 + route_idx
                     c_data[customer_j, 8] = 1 + route_idx
                     flag = 0
@@ -70,7 +87,7 @@ def saving_method(c_data, capacity, t_data):
             for pos in range(len(routes[route_i_idx])+1):
                 new_route = copy.deepcopy(routes[route_i_idx])
                 new_route.insert(pos, customer_j)
-                if check_capacity(new_route, c_data, capacity) and check_time_window(new_route, c_data, t_data):
+                if check_capacity(new_route, c_data, capacity) and check_time_window(new_route, c_data, t_data, wait_time):
                     routes[route_i_idx] = new_route
                     c_data[customer_j, 8] = 1 + route_i_idx
                     flag = 0
@@ -80,12 +97,12 @@ def saving_method(c_data, capacity, t_data):
             for pos in range(len(routes[route_j_idx])+1):
                 new_route = copy.deepcopy(routes[route_j_idx])
                 new_route.insert(pos, customer_i)
-                if check_capacity(new_route, c_data, capacity) and check_time_window(new_route, c_data, t_data):
+                if check_capacity(new_route, c_data, capacity) and check_time_window(new_route, c_data, t_data, wait_time):
                     routes[route_j_idx] = new_route
                     c_data[customer_i, 8] = 1 + route_j_idx
                     flag = 0
                     break
 
-        flag += 1  
+        flag += 1
 
-    return routes
+    return routes, c_data
