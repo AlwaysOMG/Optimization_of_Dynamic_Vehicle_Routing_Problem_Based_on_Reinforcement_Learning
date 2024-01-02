@@ -26,18 +26,20 @@ def check_capacity(route, c_data, capacity):
 def check_time_window(route, c_data, t_data, wait_time):
     t = 0
     previous_node = 0
+    route.append(0)
     for customer in route:
         t += t_data[previous_node, customer]
         
-        if t > c_data[0, 5] or t > c_data[customer, 5]:
+        if t > c_data[customer, 5]:
             return False
         if t + wait_time >= c_data[customer, 4]:
-            t = t + c_data[customer, 6] if wait_time == 0 \
-            else c_data[customer, 4] + c_data[customer, 6]
+            t = max(t, c_data[customer, 4])
+            t += c_data[customer, 6]
             previous_node = customer
         else:
             return False
 
+    route.pop()
     return True
 
 def saving_method(c_data, capacity, t_data):
