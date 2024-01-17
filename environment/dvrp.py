@@ -1,35 +1,31 @@
 import numpy as np
+from scipy.stats import gamma
 import random
 import copy
 
-import dvrp.event as et
+import environment.event as et
 
 class DVRP:
-    time_upper_bound = 100000
+    gamma_shape_parameter = 1
+    gamma_scale_parameter = 1
 
     def __init__(self, file_path, dynamic_degree, update_interval):
         self.dynamic_degree = dynamic_degree
         self.update_interval = update_interval
         
-        # Original data
+        # raw data
         data = self.read_file(file_path)
         self.customer_num = data[0]
         self.customer_data = data[1]
         self.vehicle_num = data[2]
         self.vehicle_capacity = data[3]
-        
-        # Online data
-        self.travel_time_parameter = self.make_travel_time_parameter([0.1, 0.6])
-        online_data = self.init_online_data()
-        self.online_customer_data = online_data[0]
-        self.online_vehicle_data = online_data[1]
-        self.online_travel_time_data = online_data[2]
 
-        # Events
-        self.event_manager = et.EventManager()
-        self.init_dynamic_event()
+        # processed data
+        self.dist_matrix = self.cal_dist_matrix()
+        self.online_customer_data = None
+        self.online_travel_time_data = None
 
-    def read_file(self,file_path):
+    def read_file(self, file_path):
         """
         Read txt file to generate instance info.
         """
@@ -63,7 +59,11 @@ class DVRP:
 
         return [customer_num, customer_data, vehicle_num, vehicle_capacity]
 
-    def make_travel_time_parameter(self, mul_range):
+    def cal_dist_matrix(self):
+        """
+        Calculate the distance between customer
+        """
+
         dist_matrix = np.zeros((self.customer_num, self.customer_num), dtype=float)
         for i in range(self.customer_num):
             for j in range(self.customer_num):
@@ -75,52 +75,44 @@ class DVRP:
                     distance = ((self.customer_data[i, 1] - self.customer_data[j, 1])**2 +\
                                 (self.customer_data[i, 2] - self.customer_data[j, 2])**2)**0.5
                     dist_matrix[i, j] = distance
+        
+        return dist_matrix
 
-        travel_time_mean = copy.deepcopy(dist_matrix)
-        multiplier = np.random.uniform(mul_range[0], mul_range[1], travel_time_mean.shape)
-        travel_time_std = travel_time_mean * multiplier
-        travel_time_parameter = np.stack((travel_time_mean, travel_time_std), axis=2)
+    def reset_request_time(self):
+        """
+        Change a certain proportion of customers to dynamically arrive
+        """
 
-        return travel_time_parameter
-
-    def init_online_data(self):
-        # Customer
+        # change customer data shape
         c_data = copy.deepcopy(self.customer_data)
-        add_column = np.zeros((c_data.shape[0], 2), dtype=int)
+        add_column = np.zeros((c_data.shape[0], 2), dtype=int) # request time, status
         c_data = np.hstack((c_data, add_column))
-        self.reset_request_time(c_data)
+        c_data[0, 8] = -1 # depot
 
-        # Vehicle
-        v_data = []
-        for _ in range(self.vehicle_num):
-            vehicle_status = [0, 0, self.vehicle_capacity, [], []]
-            v_data.append(vehicle_status)
-
-        # Travel time
-        t_data = self.sample_travel_time()
-
-        return [c_data, v_data, t_data]
-
-    def reset_request_time(self, data):
+        # set request time
         dynamic_num = int((self.customer_num-1) * self.dynamic_degree)
         dynamic_request = random.sample(range(1, self.customer_num), dynamic_num)
         for idx in dynamic_request:
             request_time = random.sample(range(1, self.customer_data[idx, 4]), 1)
-            data[idx, -2] = request_time[0]
+            c_data[idx, 7] = request_time[0]
+        
+        return c_data
 
     def sample_travel_time(self):
-        travel_time_matrix = np.zeros((self.customer_num, self.customer_num), dtype=float)
+        """
+        Random sampling of travel times with gamma distribution
+        """
+
+        t_data = np.zeros((self.customer_num, self.customer_num), dtype=float)
         for i in range(self.customer_num):
             for j in range(self.customer_num):
-                travel_time_matrix[i, j] = self.travel_time_parameter[i, j, 0]
-                """
-                mean = self.travel_time_parameter[i, j, 0]
-                std = self.travel_time_parameter[i, j, 1]
-                travel_time = np.random.normal(mean, std, 1)
-                travel_time_matrix[i, j] = travel_time
-                """
-        
-        return travel_time_matrix
+                if self.dist_matrix[i, j] == 0:
+                    t_data[i, j] = 0
+                else:
+                    t_data[i, j] = gamma.rvs(a = self.dist_matrix[i, j] * self.gamma_shape_parameter, 
+                                             scale = self.gamma_scale_parameter)
+                        
+        return t_data
     
     def init_dynamic_event(self):
         # Dynamic customer request
@@ -138,10 +130,22 @@ class DVRP:
             self.event_manager.add_event(event)
             t += self.update_interval
 
-if __name__ == '__main__':
-    file_path = "./instance/Vrp-Set-Solomon/C101.txt"
-    prob = DVRP(file_path, 0.1, 20)
-    print(prob.online_customer_data)
-    print(prob.online_vehicle_data)
-    print(prob.online_travel_time_data)
-    
+    def reset(self):
+        # customer 
+        self.online_customer_data = self.reset_request_time()
+
+        # travel time
+        self.online_travel_time_data = self.sample_travel_time()
+
+    def get_customer_data(self):
+        mask_data = copy.deepcopy(self.online_customer_data)
+        rows_to_mask = np.where(mask_data[:, 7] > 0)[0]
+        mask_data[rows_to_mask, :] = -1
+
+        return mask_data
+
+    def get_travel_time_data(self):
+        return self.online_travel_time_data
+
+    def get_vehicle_capacity(self):
+        return self.vehicle_capacity
