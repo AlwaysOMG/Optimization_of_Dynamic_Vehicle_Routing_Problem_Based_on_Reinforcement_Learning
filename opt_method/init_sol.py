@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 
 INF = 999999999
 
@@ -69,7 +68,7 @@ def find_best_place(route, c_data, t_data, capacity, alpha1=0, alpha2=1):
             continue
 
         for place in range(1, len(route)):
-            test_route = copy.deepcopy(route)
+            test_route = route[:]
             test_route.insert(place, u)
             i = test_route[place-1]
             j = test_route[place+1]
