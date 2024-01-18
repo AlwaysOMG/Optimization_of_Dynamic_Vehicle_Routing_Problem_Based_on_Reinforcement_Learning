@@ -3,9 +3,9 @@ from scipy.stats import gamma
 import random
 import copy
 
-import environment.event as et
+import model.event as et
 
-class DVRP:
+class Env:
     gamma_shape_parameter = 1
     gamma_scale_parameter = 1
 
@@ -145,6 +145,7 @@ class DVRP:
         return mask_data
 
     def get_travel_time_data(self):
+        return self.dist_matrix
         return self.online_travel_time_data
 
     def get_vehicle_capacity(self):
