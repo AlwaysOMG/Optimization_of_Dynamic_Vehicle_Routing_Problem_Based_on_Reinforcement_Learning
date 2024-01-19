@@ -62,7 +62,7 @@ def acception_criteria(old_routes, new_routes, c_data, t_data, capacity):
     else:
         return new_routes, True
 
-def iterated_local_search(c_data, t_data, capacity, max_iter_num=10):
+def iterated_local_search(c_data, t_data, capacity, max_iter_num=20):
     """
     Iterates LS many times to find optimal solution, and perturb it 
     to make it escape from the local optimal.
@@ -76,10 +76,6 @@ def iterated_local_search(c_data, t_data, capacity, max_iter_num=10):
         new_routes = perturbation(best_routes)
         best_new_routes = local_search_block(new_routes, c_data, t_data, capacity)
         best_routes, is_improved = acception_criteria(best_routes, best_new_routes, c_data, t_data, capacity)
-        
-        if is_improved == True:
-            terminate_counter = 0
-        else:
-            terminate_counter += 1
+        terminate_counter = 0 if is_improved else terminate_counter+1
     
     return best_routes
