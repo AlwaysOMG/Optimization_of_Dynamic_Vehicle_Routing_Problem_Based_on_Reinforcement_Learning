@@ -36,35 +36,35 @@ def cal_begin_time(route, c_data, t_data):
     
     return b
 
-def cal_cost(route, c_data, t_data, capacity):
+def cal_cost(route, c_data, t_data, capacity, is_distance=True):
     """
-    Calculate the cost for a route.
-    
-    Cost = total dist + overtime penalty
+    Calculate the cost for a route. Distance or finish time.
     """
     
     # check capacity
     if cal_rest_capacity(route, c_data, capacity) < 0:
-        return CAPACITY_PENALTY
+        return CAPACITY_PENALTY   
 
-    cost = 0
-    dist = 0
-    time = 0
+    distance = 0
+    current_time = 0
+    penalty = 0
     current_node = 0
     for customer in route:
-        dist += t_data[current_node, customer]
-        time += t_data[current_node, customer]
-        if time < c_data[customer, 4]:
+        distance += t_data[current_node, customer]
+        current_time += t_data[current_node, customer]
+        if current_time < c_data[customer, 4]:
             # wait until the earliest service time
-            time = c_data[customer, 4]
-        elif time > c_data[customer, 5]:
+            current_time = c_data[customer, 4]
+        elif current_time > c_data[customer, 5]:
             # overtime
-            cost += (time - c_data[customer, 5]) * OVERTIME_PENALTY
-        time += c_data[customer, 6]
+            penalty += (current_time - c_data[customer, 5]) * OVERTIME_PENALTY
+        current_time += c_data[customer, 6]
         current_node = customer
 
-    cost += dist
-    return cost
+    if is_distance:
+        return distance + penalty
+    else:
+        return current_time + penalty
 
 def check_customer(routes, str=None):
     flattened_list = [item for sublist in routes for item in sublist]

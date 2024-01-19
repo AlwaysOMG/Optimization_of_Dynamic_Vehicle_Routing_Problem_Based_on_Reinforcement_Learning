@@ -2,9 +2,9 @@ import random
 import copy
 
 from opt_method.utils import INF
-from opt_method.utils import check_customer
+from opt_method.utils import cal_cost
 from opt_method.init_sol import insertion
-from opt_method.local_search import cal_cost, two_opt_star, exchange, relocate
+from opt_method.local_search import two_opt_star, exchange, relocate
 
 def local_search_block(routes, c_data, t_data, capacity):
     """    
@@ -62,7 +62,7 @@ def acception_criteria(old_routes, new_routes, c_data, t_data, capacity):
     else:
         return new_routes, True
 
-def iterated_local_search(c_data, t_data, capacity, max_iter_num=20):
+def iterated_local_search(c_data, t_data, capacity, max_iter_num=10):
     """
     Iterates LS many times to find optimal solution, and perturb it 
     to make it escape from the local optimal.

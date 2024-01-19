@@ -1,4 +1,4 @@
-from opt_method.utils import INF, CAPACITY_PENALTY, OVERTIME_PENALTY
+from opt_method.utils import INF
 from opt_method.utils import cal_cost
 
 def two_opt_star(routes, c_data, t_data, capacity):
