@@ -1,57 +1,11 @@
-OVERTIME_PENALTY = 1000
-CAPACITY_PENALTY = 999999999
-INF = CAPACITY_PENALTY + 1
-
-def cal_cost(route, c_data, t_data, capacity):
-    # check capacity
-    demand = 0
-    for customer in route:
-        demand += c_data[customer, 3]
-    if demand > capacity:
-        return CAPACITY_PENALTY
-
-    cost = 0
-    current_time = 0
-    current_node = 0
-    for customer in route:
-        current_time += t_data[current_node, customer]
-        if current_time < c_data[customer, 4]:
-            # wait until the earliest service time
-            current_time = c_data[customer, 4]
-        elif current_time > c_data[customer, 5]:
-            # overtime
-            cost += (current_time - c_data[customer, 5]) * OVERTIME_PENALTY
-        current_time += c_data[customer, 6]
-        current_node = customer
-
-    cost += current_time
-    return cost
-
-def or_opt(routes, c_data, t_data):
-    for idx, r in enumerate(routes):
-        best = r
-        best_cost = cal_cost(r, c_data, t_data)
-        customer_num = len(r)-2
-        for l in range(1, customer_num):
-            for i in range(1, customer_num-l+1):
-                for j in range(1, customer_num-l+1):
-                    if i == j:
-                        continue
-                    
-                    new = r[:]
-                    cut = r[i:i+l]
-                    del new[i:i+l]
-                    new[j:j] = cut
-
-                    new_cost = cal_cost(new, c_data, t_data)
-                    if new_cost < best_cost:
-                        best = new
-                        best_cost = new_cost
-                        print(best)
-
-        routes[idx] = best
+from opt_method.utils import INF, CAPACITY_PENALTY, OVERTIME_PENALTY
+from opt_method.utils import cal_cost
 
 def two_opt_star(routes, c_data, t_data, capacity):
+    """
+    Changing one segment of a route with another segment from another route.
+    """
+
     current_total_cost = sum(cal_cost(r, c_data, t_data, capacity) for r in routes)
     best_total_cost = INF
     while(current_total_cost < best_total_cost):
@@ -95,6 +49,10 @@ def two_opt_star(routes, c_data, t_data, capacity):
         current_total_cost = sum(cal_cost(r, c_data, t_data, capacity) for r in routes)
 
 def exchange(routes, c_data, t_data, capacity):
+    """
+    The interchange two customers between two routes.
+    """
+
     current_total_cost = sum(cal_cost(r, c_data, t_data, capacity) for r in routes)
     best_total_cost = INF
     while(current_total_cost < best_total_cost):
@@ -156,6 +114,10 @@ def exchange(routes, c_data, t_data, capacity):
         current_total_cost = sum(cal_cost(r, c_data, t_data, capacity) for r in routes)
 
 def relocate(routes, c_data, t_data, capacity):
+    """
+    Move one customer from one route to another.
+    """
+
     current_total_cost = sum(cal_cost(r, c_data, t_data, capacity) for r in routes)
     best_total_cost = INF
     while(current_total_cost < best_total_cost):

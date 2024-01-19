@@ -1,10 +1,11 @@
 import numpy as np
 
-INF = 999999999
+from opt_method.utils import INF
+from opt_method.utils import cal_rest_capacity, cal_begin_time
 
 def init_route(c_data):
     """
-    Initialize the route with the unoruted customer which has the earliest deadline
+    Initialize the route with the unoruted customer which has the earliest deadline.
     """
 
     unrouted_customer = np.where(c_data[:, 8] == 0)[0]
@@ -13,42 +14,10 @@ def init_route(c_data):
 
     return [0, seed, 0]
 
-def cal_rest_capacity(route, c_data, capacity):
-    """
-    Calculate the rest capacity of the route
-    """
-
-    demand = 0
-    for customer in route:
-        demand += c_data[customer, 3]
-
-    return capacity - demand
-
-def cal_begin_time(route, c_data, t_data):
-    """
-    Calculate the begin service time of each customer in the route
-    """
-
-    b = [0] * len(route)
-    for i in range(len(route)):
-        if i == 0:
-            b[i] = 0
-            continue
-
-        customer = route[i]
-        previous_customer = route[i-1]
-        arrival_time = b[i-1] + c_data[previous_customer, 6] + t_data[previous_customer, customer]
-        if arrival_time < c_data[customer, 4]:
-            b[i] = c_data[customer, 4]
-        else:
-            b[i] = arrival_time
-    
-    return b
-
 def find_best_place(route, c_data, t_data, capacity, alpha1=0, alpha2=1):
     """
     For each unrouted customer, we first compute its best insertion place
-    in the emerging route with smallest c1
+    in the emerging route with smallest c1.
 
     c_1 = alpha1 * c_11 + alpha2 * c_12
     c_11 = d_iu + d_uj - d_ij
@@ -96,7 +65,7 @@ def find_best_place(route, c_data, t_data, capacity, alpha1=0, alpha2=1):
 def insert_best_customer(route, c_data, t_data, insertion_dict, ld=2):
     """
     The best customer to be inserted in the route is selected as the one which
-    has the biggest c_2
+    has the biggest c_2.
 
     c_2 = lambda * d_0u - c_1
     """
