@@ -88,7 +88,7 @@ def insertion(c_data, t_data, capacity):
     new customer into the partial route.
     """
 
-    route_list = []
+    routes_list = []
     unrouted_num = len(np.where(c_data[:, 8] == 0)[0])
     while(unrouted_num > 0):
         route = init_route(c_data)
@@ -100,7 +100,7 @@ def insertion(c_data, t_data, capacity):
             else:
                 insert_best_customer(route, c_data, t_data, insertion_dict)
         
-        route_list.append(route)
+        routes_list.append(route)
         unrouted_num = len(np.where(c_data[:, 8] == 0)[0])
     
-    return route_list
+    return routes_list

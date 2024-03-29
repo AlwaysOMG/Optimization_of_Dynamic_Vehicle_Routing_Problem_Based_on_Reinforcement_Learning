@@ -77,5 +77,5 @@ def iterated_local_search(c_data, t_data, capacity, max_iter_num=10):
         best_new_routes = local_search_block(new_routes, c_data, t_data, capacity)
         best_routes, is_improved = acception_criteria(best_routes, best_new_routes, c_data, t_data, capacity)
         terminate_counter = 0 if is_improved else terminate_counter+1
-    
+
     return best_routes

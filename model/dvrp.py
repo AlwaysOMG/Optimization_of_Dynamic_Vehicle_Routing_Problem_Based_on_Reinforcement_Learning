@@ -2,12 +2,14 @@ import numpy as np
 from scipy.stats import gamma
 import random
 import copy
+import heapq
 
 import model.event as et
 
 class Env:
     gamma_shape_parameter = 1
     gamma_scale_parameter = 1
+    clock = 0
 
     def __init__(self, file_path, dynamic_degree, update_interval):
         self.dynamic_degree = dynamic_degree
@@ -23,7 +25,12 @@ class Env:
         # processed data
         self.dist_matrix = self.cal_dist_matrix()
         self.online_customer_data = None
+        self.online_vehicle_data = None
         self.online_travel_time_data = None
+        self.event_list = None
+
+        # event manager
+        self.event_manager = et.EventManager()
 
     def read_file(self, file_path):
         """
@@ -78,7 +85,7 @@ class Env:
         
         return dist_matrix
 
-    def reset_request_time(self):
+    def init_dynamic_customer(self):
         """
         Change a certain proportion of customers to dynamically arrive
         """
@@ -98,6 +105,19 @@ class Env:
         
         return c_data
 
+    def init_vehicle_data(self):
+        """
+        6 features of the vehicle: assigned route, completed route, 
+        remaining capacity, completed node-to-node distance, completed service time.
+        """
+
+        v_data = []
+        for _ in range(self.vehicle_num):
+            vehicle_data = [[], [], self.vehicle_capacity, 0, 0]
+            v_data.append(vehicle_data)
+        
+        return v_data
+
     def sample_travel_time(self):
         """
         Random sampling of travel times with gamma distribution
@@ -114,28 +134,32 @@ class Env:
                         
         return t_data
     
-    def init_dynamic_event(self):
-        # Dynamic customer request
+    def set_dynamic_event(self):
+        """
+        Return a list to store dynamic events and their time points.
+        """
+        
+        event_list = []
+        # dynamic customer request
         for i in range(self.customer_num):
             if self.online_customer_data[i, 7] > 0:
-                time = self.online_customer_data[i, 7]
+                t = self.online_customer_data[i, 7]
                 id = self.online_customer_data[i, 0]
-                event = et.ArrivalEvent(time, id)
-                self.event_manager.add_event(event)
+                heapq.heappush(event_list, (t, id))
 
-        # Dynamic travel time update
-        t = 0 + self.update_interval
-        while t < self.time_upper_bound:
-            event = et.TravelTimeUpdateEvent(t)
-            self.event_manager.add_event(event)
-            t += self.update_interval
+        # dynamic travel time update
+        if self.update_interval > 0:
+            depot_close_time = self.online_customer_data[0, 5]
+            t = self.update_interval
+            while t < depot_close_time:
+                heapq.heappush(event_list, (t, -1))
+                t += self.update_interval
+        
+        # the close of depot
+        close_time = self.online_customer_data[0, 5]
+        heapq.heappush(event_list, (close_time, 0))
 
-    def reset(self):
-        # customer 
-        self.online_customer_data = self.reset_request_time()
-
-        # travel time
-        self.online_travel_time_data = self.sample_travel_time()
+        return event_list
 
     def get_customer_data(self):
         mask_data = copy.deepcopy(self.online_customer_data)
@@ -143,10 +167,146 @@ class Env:
         mask_data[rows_to_mask, :] = -1
 
         return mask_data
-
-    def get_travel_time_data(self):
-        return self.dist_matrix
-        return self.online_travel_time_data
-
+    
     def get_vehicle_capacity(self):
-        return self.vehicle_capacity
+        capacity_list =  [row[2] for row in self.online_vehicle_data]
+        
+        return capacity_list
+
+    def get_state(self):
+        decision_data = None
+        c_data = self.get_customer_data()
+        t_data = self.online_travel_time_data
+        capacity = self.get_vehicle_capacity()
+        
+        return (decision_data, [c_data, t_data, capacity])
+
+    def set_vehicle_data(self, routes):
+        """
+        Update the vehicle data and customer data according to the rotues.
+        """
+
+        for i in range(len(self.online_vehicle_data)):
+            if i < len(routes):
+                self.online_vehicle_data[i][0] = routes[i]
+                for c in routes[i]:
+                    if c == 0:
+                        continue
+                    self.online_customer_data[c, 8] = 1
+            else:
+                self.online_vehicle_data.pop()
+
+    def advance_time(self):
+        event = heapq.heappop(self.dynamic_event_list)
+        print(f"event {event[1]} at {event[0]}")
+        for v in self.online_vehicle_data:
+            print("======================")
+            if not v[1]:    # start the route
+                v[1].append(v[0].pop(0))
+            
+            current_time = self.clock
+            next_time = event[0]
+            while(current_time <= next_time):
+                time_interval = next_time - current_time
+                if v[3] == 0: # serve customer now
+                    current_node = v[1][-1]
+                    if v[4] + time_interval > self.online_customer_data[current_node, 6]: # finish service and start travel
+                        # service
+                        used_time = self.online_customer_data[current_node, 6] - v[4]
+                        current_time += used_time
+                        v[4] = 0
+                        print(f"Finish customer {current_node} at {current_time}")
+                        
+                        # travel
+                        if not v[0]:    # no target 
+                            break
+                        
+                        v[1].append(v[0].pop(0))
+                        self.online_customer_data[v[1][-1], 8] = -1
+                        v[2] -= self.online_customer_data[v[1][-1], 3]
+                        current_node = v[1][-2]
+                        next_node = v[1][-1]
+                        speed = self.dist_matrix[current_node, next_node] / self.online_travel_time_data[current_node, next_node]
+                        left_time = next_time - current_time
+                        if speed * left_time > self.dist_matrix[current_node, next_node]: # have enough time to finsh traveling
+                            v[3] = self.dist_matrix[current_node, next_node]
+                            used_time = self.dist_matrix[current_node, next_node] / speed
+                            current_time += used_time
+                        else:
+                            v[3] += speed * left_time
+                            break
+                    else: # keep servicingonline_customer_data
+                        v[4] += time_interval
+                else:   # on the road now
+                    current_node = v[1][-2]
+                    next_node = v[1][-1]
+                    speed = self.dist_matrix[current_node, next_node] / self.online_travel_time_data[current_node, next_node]
+                    if v[3] + speed * time_interval > self.dist_matrix[current_node, next_node]:   # finish travel and start service
+                        # travel
+                        used_time = (self.dist_matrix[current_node, next_node] - v[3]) / speed
+                        current_time += used_time
+                        v[3] = 0
+                        print(f"Travel time: {self.online_travel_time_data[current_node, next_node]}")
+                        print(f"Arrive to the {next_node} at {current_time}")
+
+                        # service
+                        current_node = v[1][-1]
+                        left_time = next_time - current_time
+                        if left_time > self.online_customer_data[current_node, 6]: # have enough time to finish the service
+                            v[4] = self.online_customer_data[current_node, 6]
+                            current_time += self.online_customer_data[current_node, 6]
+                        else:
+                            v[4] += left_time
+                            break
+                    else: # keep traveling
+                        v[3] += speed * time_interval
+                        break               
+
+        self.clock = event[0]
+        if event[1] == -1:
+            self.sample_travel_time()
+        print(self.online_customer_data)
+        print(self.online_vehicle_data)
+
+
+    def get_reward(self):
+        pass
+
+    def check_terminate(self):
+        """
+        Check if all customers arrived and were served.
+        """
+        
+        revealed_rows = self.online_customer_data[self.online_customer_data[:, 0] > 0, :]
+        is_all_reavled = True if len(revealed_rows) == self.customer_num else False
+        is_finished = np.all(revealed_rows[:, 8] == -1)
+        
+        return is_all_reavled and is_finished
+
+    def reset(self):
+        """
+        Initialize the data of customer, vehicle and travel_time.
+        Return the state_0 for the route-building.
+        """
+
+        # initialize data
+        self.online_customer_data = self.init_dynamic_customer()
+        self.online_vehicle_data = self.init_vehicle_data()
+        self.online_travel_time_data = self.sample_travel_time()
+        self.dynamic_event_list = self.set_dynamic_event()
+
+        state = self.get_state()
+
+        return state
+
+    def step(self, action):
+        if action[0] == True:   # have new routes
+            self.set_vehicle_data(action[1])
+        
+        self.advance_time()
+        next_state = self.get_state()
+        reward = self.get_reward()
+        is_terminate = self.check_terminate()
+
+        return next_state, reward, is_terminate
+        
