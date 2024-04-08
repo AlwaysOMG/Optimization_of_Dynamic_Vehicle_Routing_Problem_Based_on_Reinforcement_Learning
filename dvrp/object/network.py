@@ -11,7 +11,7 @@ class Road:
         self.std = cv * self.dist
         self.travel_time = 0
         self.speed = 0
-        
+
         self.sample_travel_time()
     
     def sample_travel_time(self):
@@ -28,9 +28,6 @@ class Road:
 
     def get_speed(self):
         return self.speed
-    
-    def get_destination(self):
-        return self.end_node
 
 class Network:
     def __init__(self, node_list, cv):

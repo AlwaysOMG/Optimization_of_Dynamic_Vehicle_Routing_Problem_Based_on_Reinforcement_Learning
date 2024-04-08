@@ -35,3 +35,6 @@ class Customer(Node):
 
     def check_served(self):
         return self.is_served
+    
+    def get_demand(self):
+        return self.demand
