@@ -7,10 +7,16 @@ class Node:
     
     def get_id(self):
         return self.id
+    
+    def get_obs(self):
+        raise NotImplementedError("Subclasses must implement this method")
 
 class Depot(Node):
     def __init__(self, dvrp, param):
         super().__init__(dvrp, param)
+
+    def get_obs(self):       
+        return [self.x_loc, self.y_loc, 0, 0, 0, 0, 0, False]
 
 class Customer(Node):
     is_served = False
@@ -38,3 +44,8 @@ class Customer(Node):
     
     def get_demand(self):
         return self.demand
+    
+    def get_obs(self):
+        return [self.x_loc, self.y_loc, self.demand, 
+                self.earliest_service_time, self.latest_service_time, 
+                self.early_penalty, self.late_penalty, self.is_served]

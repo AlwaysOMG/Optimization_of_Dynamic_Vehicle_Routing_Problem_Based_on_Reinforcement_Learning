@@ -4,7 +4,7 @@ import random
 from dvrp.param.param_class import VehicleParam, NodeParam
 
 config = configparser.ConfigParser()
-config.read("config.cfg")
+config.read("./dvrp/dvrp.cfg")
 instance_config = config['instance']
 
 class ParamGenerator:

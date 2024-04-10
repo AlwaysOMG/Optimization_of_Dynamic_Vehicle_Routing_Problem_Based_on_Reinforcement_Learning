@@ -30,26 +30,21 @@ class Road:
         return self.speed
 
 class Network:
-    def __init__(self, node_list, cv):
-        self.road_matrix = []
-        for node_1 in node_list:
-            road_list = []
-            for node_2 in node_list:
-                if node_1 == node_2:
-                    r = None
-                else:
-                    r = Road(node_1, node_2, cv)
-                road_list.append(r)
-            self.road_matrix.append(road_list)
+    def __init__(self, node_list, cv):       
+        self.road_matrix = [[None if node_1 == node_2 else Road(node_1, node_2, cv) for node_2 in node_list]
+                             for node_1 in node_list]
     
     def update_travel_time(self):
-        for row in self.road_matrix:
-            for road in row:
-                if road != None:
-                    road.sample_travel_time()
-    
+         [[road.sample_travel_time() for road in row if road is not None] 
+          for row in self.road_matrix]
+        
     def get_road(self, node_1, node_2):
         id_1 = node_1.get_id()
         id_2 = node_2.get_id()
         return self.road_matrix[id_1][id_2]
+    
+    def get_obs(self):
+        return [[road.get_travel_time() if road != None else None
+                for road in row] 
+                for row in self.road_matrix]
     

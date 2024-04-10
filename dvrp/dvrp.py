@@ -6,7 +6,7 @@ from dvrp.object.node import Depot, Customer
 from dvrp.object.network import Network
 
 config = configparser.ConfigParser()
-config.read("config.cfg")
+config.read("./dvrp/dvrp.cfg")
 instance_config = config['instance']
 
 class DVRP:
@@ -21,21 +21,10 @@ class DVRP:
     def reset(self):
         node_param, vehicle_param = self.param_generator.generate_parameter()
 
-        self.node_list = []
-        for i, p in enumerate(node_param):
-            if i == 0:
-                depot = Depot(self, p)
-                self.depot = depot
-                self.node_list.append(depot)
-            else:
-                c = Customer(self, p)
-                self.node_list.append(c)
-        
-        self.vehicle_list = []
-        for p in vehicle_param:
-            v = Vehicle(self, p)
-            self.vehicle_list.append(v)
-        
+        self.node_list = [Depot(self, node_param[0])] + \
+            [Customer(self, p) for p in node_param[1:]]
+        self.depot = self.node_list[0]
+        self.vehicle_list = [Vehicle(self, p) for p in vehicle_param]
         self.network = Network(self.node_list, self.travel_time_cv)
 
     def step(self, route_list):
@@ -57,6 +46,13 @@ class DVRP:
     def update_travel_time(self):
         self.network.update_travel_time()
 
+    def get_observation(self):
+        vehicle_obs = [vehicle.get_obs() for vehicle in self.vehicle_list]
+        node_obs = [node.get_obs() for node in self.node_list]
+        road_obs = self.network.get_obs()
+
+        return [vehicle_obs, node_obs, road_obs]
+    
     def check_done(self):
         for node in self.node_list:
             if node == self.depot:
@@ -65,18 +61,14 @@ class DVRP:
                 return False
         
         for vehicle in self.vehicle_list:
-            loc = vehicle.get_location()
-            if loc != self.depot:
+            if vehicle.get_location() != self.depot:
                 return False
-        
+                
         return True
     
     def get_reward(self, is_finished):
         if is_finished == True:
-            cost = 0
-            for vehicle in self.vehicle_list:
-                cost += vehicle.get_cost()
-                return - cost
+            return -sum(vehicle.get_cost() for vehicle in self.vehicle_list)
         else:
             return 0
     
@@ -88,9 +80,6 @@ class DVRP:
 
     def get_road(self, node_1, node_2):
         return self.network.get_road(node_1, node_2)
-        
-    def get_observation(self):
-        pass
     
     def display(self):
         print("Node")
