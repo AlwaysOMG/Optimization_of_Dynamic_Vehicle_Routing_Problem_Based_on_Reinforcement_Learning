@@ -44,7 +44,7 @@ class Network:
         return self.road_matrix[id_1][id_2]
     
     def get_obs(self):
-        return [[road.get_travel_time() if road != None else None
+        return [[road.get_travel_time() if road != None else 0
                 for road in row] 
                 for row in self.road_matrix]
     

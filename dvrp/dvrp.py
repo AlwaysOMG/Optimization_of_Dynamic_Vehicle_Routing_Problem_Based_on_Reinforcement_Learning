@@ -12,6 +12,7 @@ instance_config = config['instance']
 class DVRP:
     current_time = 0
 
+    node_num = int(instance_config["customer_num"])+1
     travel_time_cv = float(instance_config["travel_time_cv"])
     update_interval = int(instance_config["travel_time_update_interval"])
 
@@ -26,6 +27,10 @@ class DVRP:
         self.depot = self.node_list[0]
         self.vehicle_list = [Vehicle(self, p) for p in vehicle_param]
         self.network = Network(self.node_list, self.travel_time_cv)
+
+        obs = self.get_observation()
+
+        return obs
 
     def step(self, route_list):
         self.move_vehicle(route_list)
@@ -54,14 +59,16 @@ class DVRP:
         return [vehicle_obs, node_obs, road_obs]
     
     def check_done(self):
+        # check vehicle back to the depot
+        for vehicle in self.vehicle_list:
+            if vehicle.get_location() != self.depot:
+                return False
+
+        # check customer been served
         for node in self.node_list:
             if node == self.depot:
                 continue
             if node.check_served() == False:
-                return False
-        
-        for vehicle in self.vehicle_list:
-            if vehicle.get_location() != self.depot:
                 return False
                 
         return True
@@ -80,7 +87,10 @@ class DVRP:
 
     def get_road(self, node_1, node_2):
         return self.network.get_road(node_1, node_2)
-    
+
+    def get_num_node(self):
+        return self.node_num
+
     def display(self):
         print("Node")
         for node in self.node_list:

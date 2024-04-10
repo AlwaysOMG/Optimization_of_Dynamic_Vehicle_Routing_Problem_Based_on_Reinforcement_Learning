@@ -16,7 +16,7 @@ class Depot(Node):
         super().__init__(dvrp, param)
 
     def get_obs(self):       
-        return [self.x_loc, self.y_loc, 0, 0, 0, 0, 0, False]
+        return [self.x_loc, self.y_loc, 0, 0, 0, 0, 0, True]
 
 class Customer(Node):
     is_served = False

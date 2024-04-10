@@ -3,36 +3,39 @@ import torch
 from dvrp.object.route import Route
 
 class RouteManager:
-    vehicle_obs = None
-    node_obs = None
-    road_obs = None
     route = None
 
     def __init__(self, dvrp):
         self.dvrp = dvrp
-
-    def set_obs(self, obs):
-        self.vehicle_obs = obs[0]
-        self.node_obs = obs[1]
-        self.road_obs = obs[2]
+        self.static_feature_dim = 7
+        self.dynamic_feature_dim = dvrp.get_num_node()
 
     def set_route(self, route):
         self.route = route
 
-    def get_obs_tensor(self):
-        static_tensor = torch.tensor([node[:-1] for node in self.node_obs])
-        dynamic_tensor = torch.tensor(self.road_obs)
+    def obs_to_tensor(self, obs):
+        vehicle_obs = obs[0]
+        node_obs = obs[1]
+        road_obs = obs[2]
+        
+        static_tensor = torch.tensor([node[:-1] for node in node_obs])
+        dynamic_tensor = torch.tensor(road_obs, dtype=torch.float32)
 
-        return static_tensor, dynamic_tensor
+        vehicle_info = vehicle_obs                          # loc_node_id, capacity
+        node_info = [[row[2], row[-1]] for row in node_obs] # demand, is_served
 
-    def get_node_info(self):
-        # demand, is_served
-        return [[row[2], row[-1]] for row in self.node_obs]
+        return [static_tensor, dynamic_tensor], [vehicle_info, node_info]
     
-    def get_vehicle_info(self):
-        # loc_node_id, capacity
-        return self.vehicle_obs
-    
+    def list_to_route(self, list):
+        route = []
+        for row in list:
+            r = Route()
+            for id in row:
+                node = self.dvrp.get_node(id)
+                r.add_node(node)
+            route.append(r)
+        return route
+
     def get_route(self):
         route_list = []
         for row in self.route:
@@ -42,4 +45,7 @@ class RouteManager:
                 r.add_node(node)
             route_list.append(r)
         return route_list
+    
+    def get_feature_dim(self):
+        return [self.static_feature_dim, self.dynamic_feature_dim]
     
