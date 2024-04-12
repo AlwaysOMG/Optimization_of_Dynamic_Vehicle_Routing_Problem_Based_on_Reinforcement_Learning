@@ -4,7 +4,7 @@ class Vehicle:
     route = None
     road = None
     road_left_distance = 0
-    finish_service = False
+    is_finish = False
 
     def __init__(self, dvrp, param):
         self.dvrp = dvrp
@@ -14,7 +14,7 @@ class Vehicle:
         self.target_node = None
 
     def drive(self, start_time, time_interval):
-        if not self.finish_service:
+        if not self.is_finish:
             current_time = start_time
             left_time = time_interval
             
@@ -40,8 +40,8 @@ class Vehicle:
                     
                     # service
                     if self.current_node == self.dvrp.get_depot():
-                        self.finish_service = True
-                        print(f"{self.id} back to depot")
+                        self.is_finish = True
+                        print(f"{self.id} back to depot with {self.capacity} left")
                         print(f"cost {self.total_travel_time + self.penalty}")
                         break
                     else:
@@ -75,5 +75,12 @@ class Vehicle:
         return self.total_travel_time + self.penalty
     
     def get_obs(self):
-        return [self.target_node.get_id() if self.target_node else self.current_node.get_id(), 
-                self.capacity]
+        loc = self.target_node.get_id() if self.target_node else self.current_node.get_id()
+        capacity = self.capacity - self.target_node.get_demand() \
+            if self.target_node != None and self.target_node != self.dvrp.get_depot() \
+                else self.capacity
+        
+        return [loc, capacity]
+    
+    def get_status(self):
+        return self.is_finish

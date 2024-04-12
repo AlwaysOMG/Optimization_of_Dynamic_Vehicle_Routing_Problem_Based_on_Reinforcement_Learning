@@ -43,8 +43,8 @@ class Decoder(nn.Module):
         return combined_embed
     
     def make_mask(self, vehicle_id):
-        capacity = self.vehicle_info[vehicle_id][1]
-        check_list = [node[1] == True or node[0] > capacity for node in self.node_info]
+        check_list = [node[1] == True or node[0] > self.vehicle_info[vehicle_id][1] 
+                      for node in self.node_info]
         for info in self.vehicle_info:
             target_node_id = info[0]
             check_list[target_node_id] = True
