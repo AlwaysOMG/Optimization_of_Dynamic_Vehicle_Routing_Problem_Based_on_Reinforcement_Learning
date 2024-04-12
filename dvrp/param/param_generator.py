@@ -22,7 +22,8 @@ class ParamGenerator:
         self.late_penalty_lower_limit = float(instance_config['late_penalty_lower_limit'])
         self.late_penalty_upper_limit = float(instance_config['late_penalty_upper_limit'])
 
-    def generate_parameter(self):        
+    def generate_parameter(self):
+        total_demand = 0
         node_param_list = []
         for i in range(self.customer_num+1):
             x_loc = round(random.uniform(0, self.map_size), 3)
@@ -39,6 +40,7 @@ class ParamGenerator:
                 p = NodeParam(i, x_loc, y_loc, demand, 
                               earliest_service_time, latest_service_time,
                               early_penalty, late_penalty)
+                total_demand += demand
             
             node_param_list.append(p)
         
@@ -47,4 +49,11 @@ class ParamGenerator:
             p = VehicleParam(i, self.vehicle_capacity)
             vehicle_param_list.append(p)
 
-        return [node_param_list, vehicle_param_list]
+        param_list = [node_param_list, vehicle_param_list]
+        # check feasibility 
+        if total_demand > self.vehicle_capacity * self.vehicle_num:
+            param_list = self.generate_parameter()
+
+        return param_list
+    
+

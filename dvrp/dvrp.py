@@ -61,7 +61,7 @@ class DVRP:
     def check_done(self):
         # check vehicle back to the depot
         for vehicle in self.vehicle_list:
-            if vehicle.get_location() != self.depot:
+            if vehicle.get_status() == False:
                 return False
 
         # check customer been served
@@ -69,7 +69,7 @@ class DVRP:
             if node == self.depot:
                 continue
             if node.check_served() == False:
-                return False
+                raise ValueError("Some nodes are not served.")
                 
         return True
     
