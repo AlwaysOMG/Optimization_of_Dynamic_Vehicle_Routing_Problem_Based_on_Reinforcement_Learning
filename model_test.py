@@ -7,10 +7,11 @@ mgr = RouteManager(env)
 model = DynamicAttentionModel(mgr.get_feature_dim())
 
 obs = env.reset()
-while not env.check_done():
+while True:
     obs_tensor, obs_info = mgr.obs_to_tensor(obs)
-    model.set_info(obs_info)
-    output = model(obs_tensor)
-    print(output)
-    route = mgr.list_to_route(output)
+    action, prob = model(obs_tensor, obs_info, True)
+    route = mgr.action_to_route(action)
     obs, reward, done = env.step(route)
+
+    if done:
+        break

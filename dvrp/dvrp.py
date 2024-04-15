@@ -10,8 +10,6 @@ config.read("./dvrp/dvrp.cfg")
 instance_config = config['instance']
 
 class DVRP:
-    current_time = 0
-
     node_num = int(instance_config["customer_num"])+1
     travel_time_cv = float(instance_config["travel_time_cv"])
     update_interval = int(instance_config["travel_time_update_interval"])
@@ -28,6 +26,9 @@ class DVRP:
         self.vehicle_list = [Vehicle(self, p) for p in vehicle_param]
         self.network = Network(self.node_list, self.travel_time_cv)
 
+        self.current_time = 0
+        self.unserved_penalty = 0
+
         obs = self.get_observation()
 
         return obs
@@ -37,10 +38,10 @@ class DVRP:
         self.update_travel_time()
 
         obs = self.get_observation()
-        is_finished = self.check_done()
-        reward = self.get_reward(is_finished)
+        is_done = self.check_done()
+        reward = self.get_reward(is_done)
         
-        return obs, reward, is_finished
+        return obs, reward, is_done
 
     def move_vehicle(self, route_list):
         for vehicle, route in zip(self.vehicle_list, route_list):
@@ -61,7 +62,7 @@ class DVRP:
     def check_done(self):
         # check vehicle back to the depot
         for vehicle in self.vehicle_list:
-            if vehicle.get_status() == False:
+            if vehicle.get_location() != self.depot:
                 return False
 
         # check customer been served
@@ -69,13 +70,15 @@ class DVRP:
             if node == self.depot:
                 continue
             if node.check_served() == False:
-                raise ValueError("Some nodes are not served.")
+                return False
                 
         return True
     
-    def get_reward(self, is_finished):
-        if is_finished == True:
-            return -sum(vehicle.get_cost() for vehicle in self.vehicle_list)
+    def get_reward(self, is_done):
+        if is_done == True:
+            vehicle_cost = sum(vehicle.get_cost() for vehicle in self.vehicle_list)
+            total_cost = vehicle_cost + self.unserved_penalty
+            return -total_cost
         else:
             return 0
     

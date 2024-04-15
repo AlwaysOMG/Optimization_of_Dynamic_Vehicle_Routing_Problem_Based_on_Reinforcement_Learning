@@ -4,63 +4,65 @@ class Vehicle:
     route = None
     road = None
     road_left_distance = 0
-    is_finish = False
 
     def __init__(self, dvrp, param):
         self.dvrp = dvrp
         self.id = param.id
+        self.max_capacity = param.capacity
         self.capacity = param.capacity
         self.current_node = dvrp.get_depot()
         self.target_node = None
 
     def drive(self, start_time, time_interval):
-        if not self.is_finish:
-            current_time = start_time
-            left_time = time_interval
+        current_time = start_time
+        left_time = time_interval
             
-            while left_time > 0:
+        while left_time > 0:
+            if self.road == None:
+                # set the destination and road
+                self.target_node = self.route.get_next_customer()
+                if self.target_node == None or self.current_node == self.target_node:
+                    break
+                self.road = self.dvrp.get_road(self.current_node, self.target_node)
                 if self.road == None:
-                    # set the destination and road
-                    self.target_node = self.route.get_next_customer()
-                    self.road = self.dvrp.get_road(self.current_node, self.target_node)
-                    self.road_left_distance = self.road.get_dist()
-                    travel_time = self.road.get_travel_time()
+                    raise AttributeError(f"{self.current_node.get_id()} -> {self.target_node.get_id()}")
+                self.road_left_distance = self.road.get_dist()
+                travel_time = self.road.get_travel_time()
+            else:
+                travel_time = self.road_left_distance / self.road.get_speed()
+       
+            if travel_time <= left_time:
+                # time advance
+                current_time += travel_time
+                self.total_travel_time += travel_time
+                # move vehicle to destination
+                self.current_node = self.target_node
+                self.target_node = None
+                self.road = None
+                self.road_left_distance = 0
+
+                # service
+                if self.current_node == self.dvrp.get_depot():
+                    self.capacity = self.max_capacity
+                    #print(f"{self.id} bact to depot at {current_time}")
                 else:
-                    travel_time = self.road_left_distance / self.road.get_speed()
-            
-                if travel_time <= left_time:
-                    # time advance
-                    current_time += travel_time
-                    self.total_travel_time += travel_time
-                    # move vehicle to destination
-                    self.current_node = self.target_node
-                    self.target_node = None
-                    self.road = None
-                    self.road_left_distance = 0
-                    
-                    # service
-                    if self.current_node == self.dvrp.get_depot():
-                        self.is_finish = True
-                        print(f"{self.id} back to depot with {self.capacity} left")
-                        print(f"cost {self.total_travel_time + self.penalty}")
-                        break
-                    else:
-                        self.provide_service(self.current_node, current_time)
-                        left_time -= travel_time
-                else:
-                    # time advance
-                    current_time += left_time
-                    self.total_travel_time += left_time
-                    # vehicle is still on the road
-                    self.road_left_distance -= self.road.get_speed() * left_time
-                    left_time = 0
-                    print(f"{self.id} on the way to {self.target_node.get_id()} at {current_time}")
-                    
+                    self.provide_service(self.current_node, current_time)
+                    left_time -= travel_time
+                    #print(f"{self.id} finish {self.current_node.get_id()} at {current_time}")
+            else:
+                # time advance
+                current_time += left_time
+                self.total_travel_time += left_time
+                # vehicle is still on the road
+                self.road_left_distance -= self.road.get_speed() * left_time
+                left_time = 0
+                #print(f"{self.id} on the way to {self.target_node.get_id()} at {current_time}")        
     
     def provide_service(self, node, current_time):
         self.capacity -= node.get_demand()
+        if self.capacity < 0:
+            raise ValueError("capacity cant be smaller than 0")
         self.penalty += node.receive_service(current_time)
-        print(f"{self.id} finish {node.get_id()} at {current_time}")
 
     def set_route(self, route):
         self.route = route
@@ -81,6 +83,3 @@ class Vehicle:
                 else self.capacity
         
         return [loc, capacity]
-    
-    def get_status(self):
-        return self.is_finish

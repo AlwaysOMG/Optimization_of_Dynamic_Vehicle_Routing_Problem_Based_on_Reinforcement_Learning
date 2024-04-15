@@ -23,65 +23,92 @@ class Decoder(nn.Module):
     vehicle_info = None
     node_info = None
 
-    def __init__(self, embed_dim, num_heads, clip_c):
+    def __init__(self, embed_dim, num_heads, clip_c, device):
         super().__init__()
         self.combined_layer = nn.Linear(embed_dim*2+1, embed_dim)
         self.attn_layer = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
         self.prob_layer = ProbLayer(embed_dim, clip_c)
+        self.device = device
     
     def set_vehicle_info(self, vehicle_info):
         self.vehicle_info = vehicle_info
 
     def set_node_info(self, node_info):
         self.node_info = node_info
-    
-    def make_vehicle_embed(self, x, vehicle_id):
-        mean_embed = x.mean(dim=0).unsqueeze(0)
-        selected_node_embed = x[self.vehicle_info[vehicle_id][0]].unsqueeze(0)
-        capacity_tensor = torch.tensor([[self.vehicle_info[vehicle_id][1]]], dtype=torch.float32)
-        combined_embed = self.combined_layer(torch.cat((mean_embed, selected_node_embed, capacity_tensor), dim=1))
-        return combined_embed
-    
-    def make_mask(self, vehicle_id):
-        check_list = [node[1] == True or node[0] > self.vehicle_info[vehicle_id][1] 
-                      for node in self.node_info]
+
+    def make_mean_mask(self):
+        # mask the served customer
+        check_list = [node[1] == True for node in self.node_info]
+        # mask the target node of vehicles
         for info in self.vehicle_info:
             target_node_id = info[0]
-            check_list[target_node_id] = True
+            if target_node_id != 0:
+                check_list[target_node_id] = True
 
-        return torch.tensor(check_list)
+        return torch.tensor(check_list).to(self.device)
+
+    def make_vehicle_embed(self, x, vehicle_id):
+        mask = self.make_mean_mask()
+        mean_embed = x[~mask].mean(dim=0).unsqueeze(0)
+        selected_node_embed = x[self.vehicle_info[vehicle_id][0]].unsqueeze(0)
+        capacity_tensor = torch.tensor([[self.vehicle_info[vehicle_id][1]]], dtype=torch.float32).to(self.device)
+        combined_embed = self.combined_layer(torch.cat((mean_embed, selected_node_embed, capacity_tensor), dim=1))
+
+        return combined_embed
     
-    def sample_customer(self, prob, is_greedy):
-        if prob.all().item():
-            return 0
+    def make_attn_mask(self, vehicle_id):
+        # mask the served customer and the customer over capacity
+        check_list = [(node[1] == True) or (node[0] > self.vehicle_info[vehicle_id][1])
+                      for node in self.node_info]
+        # mask the target node of vehicles
+        for info in self.vehicle_info:
+            target_node_id = info[0]
+            if target_node_id != 0:
+                check_list[target_node_id] = True
+        # mask the depot if the vehicle is at the depot
+        if self.vehicle_info[vehicle_id][0] == 0:
+            check_list[0] = True
         
-        if is_greedy:
-            return torch.argmax(prob, dim=1).item()
-        else:
-            return Categorical(prob).sample().item()
+        if all(check_list):
+            check_list[0] = False
+
+        return torch.tensor(check_list).to(self.device)
+
+    def sample_customer(self, prob, is_greedy):
+        id = torch.argmax(prob, dim=1).item() if is_greedy \
+            else Categorical(prob).sample().item()
+        p = prob[0, id].item()
+
+        return id, p
     
     def update_info(self, vehicle_id, node_id):
         self.vehicle_info[vehicle_id][1] -= self.node_info[node_id][0]
+        self.vehicle_info[vehicle_id][0] = node_id
         self.node_info[node_id][1] = True
     
     def forward(self, x, is_greedy=False):
         route_list = []
+        route_prob = []
         for vehicle_id in range(len(self.vehicle_info)):
             route = []
+            prob_dict = {}
             while True:
                 vehicle_embed = self.make_vehicle_embed(x, vehicle_id)
-                mask = self.make_mask(vehicle_id)
+                attn_mask = self.make_attn_mask(vehicle_id)
                 vehicle_embed = self.attn_layer(vehicle_embed, x, x, 
-                                                key_padding_mask=mask)[0]
+                                                key_padding_mask=attn_mask)[0]
                 
-                prob = self.prob_layer([vehicle_embed, x], mask)
-                node_id = self.sample_customer(prob, is_greedy)
+                prob = self.prob_layer([vehicle_embed, x], attn_mask)
+                node_id, node_prob = self.sample_customer(prob, is_greedy)                
                 route.append(node_id)
-                self.update_info(vehicle_id, node_id)
+                prob_dict[node_id] = node_prob
                 
                 if node_id == 0:
                     route_list.append(route)
+                    route_prob.append(prob_dict)
                     break
+
+                self.update_info(vehicle_id, node_id)
         
-        return route_list
+        return route_list, route_prob
             

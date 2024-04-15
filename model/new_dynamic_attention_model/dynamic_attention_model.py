@@ -1,4 +1,5 @@
 import configparser
+import torch
 import torch.nn as nn
 
 from model.new_dynamic_attention_model.encoder import Encoder
@@ -9,6 +10,7 @@ config.read("./model/new_dynamic_attention_model/model.cfg")
 parameter_config = config['parameter']
 
 class DynamicAttentionModel(nn.Module):
+    device = torch.device("cuda:0")
     embed_dim = int(parameter_config["embed_dim"])
     num_heads = int(parameter_config["num_heads"])
     num_layers = int(parameter_config["num_layers"])
@@ -19,15 +21,18 @@ class DynamicAttentionModel(nn.Module):
         static_feature_dim = feature_dim[0]
         dynamic_feature_dim = feature_dim[1]
         self.encoder = Encoder(static_feature_dim, dynamic_feature_dim, 
-                               self.embed_dim, self.num_heads, self.num_layers)
-        self.decoder = Decoder(self.embed_dim, self.num_heads, self.clip_c)
+                               self.embed_dim, self.num_heads, self.num_layers, 
+                               self.device)
+        self.decoder = Decoder(self.embed_dim, self.num_heads, self.clip_c, 
+                               self.device)
+        
+        self.to(self.device)
     
-    def forward(self, x):
-        encoder_output = self.encoder(x)
-        route = self.decoder(encoder_output)
-
-        return route
-    
-    def set_info(self, info):
+    def forward(self, x, info, is_greedy):
         self.decoder.set_vehicle_info(info[0])
         self.decoder.set_node_info(info[1])
+
+        encoder_output = self.encoder(x)
+        route, prob = self.decoder(encoder_output, is_greedy)
+
+        return route, prob

@@ -50,10 +50,5 @@ class ParamGenerator:
             vehicle_param_list.append(p)
 
         param_list = [node_param_list, vehicle_param_list]
-        # check feasibility 
-        if total_demand > self.vehicle_capacity * self.vehicle_num:
-            param_list = self.generate_parameter()
 
         return param_list
-    
-
