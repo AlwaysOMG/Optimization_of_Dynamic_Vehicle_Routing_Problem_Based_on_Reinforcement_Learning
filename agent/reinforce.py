@@ -4,40 +4,44 @@ import numpy as np
 import torch
 import torch.optim as optim
 
-config = configparser.ConfigParser()
-config.read("./agent/train.cfg")
-parameter_config = config['reinforce']
-
 class REINFORCE:
-    lr = float(parameter_config["learning_rate"])
-    batch_size = int(parameter_config["batch_size"])
+    route_prob_list = None
+    episode_trajectory = []
+    batch_loss = 0
+    
+    total_reward = 0
+    baseline = 0
 
-    def __init__(self, model, lr):
+    def __init__(self, model, lr, batch_size):
         self.model = model
         self.optimizer = optim.Adam(model.parameters(), lr=lr)
-
-        self.prob_dict_list = None
-        self.trajectory_prob = 1
-        self.total_reward = 0
-        self.baseline = 0
-
-        self.batch_loss = []
+        self.batch_size = batch_size        
 
     def get_action(self, tensor, info, is_greedy):
         route, prob = self.model(tensor, info, is_greedy)
-        self.prob_dict_list = prob
+        self.route_prob_list = prob
 
         return route
     
-    def memory_trajectory(self, action, info):
-        for vehicle_id, route in enumerate(action):
+    def memory_trajectory(self, info):
+        for vehicle_id, route_prob in enumerate(self.route_prob_list):
             target_node = info[0][vehicle_id][0]
-            if target_node in route:
-                drive_route = route[:route.index(target_node)+1]
-                for node_id in drive_route:
-                    prob = self.prob_dict_list[vehicle_id][node_id]
-                    if prob != 1:
-                        self.trajectory_prob *= prob
+            found_target = False
+            for i, prob_tuple in enumerate(route_prob):
+                if prob_tuple[1] == target_node:
+                    before_route_prob = route_prob[:i+1]
+                    self.episode_trajectory.extend(before_route_prob)
+                    found_target = True
+
+                    # detach unused tensor
+                    for later_prob_tuple in route_prob[i+1:]:
+                        later_prob_tuple[0].detach()
+
+                    break
+            
+            if not found_target:
+                for prob_tuple in route_prob:
+                    prob_tuple[0].detach()        
     
     def set_total_reward(self, total_reward):
         self.total_reward = total_reward
@@ -46,17 +50,17 @@ class REINFORCE:
         self.baseline = total_reward
 
     def cal_loss(self):
-        log_prob = np.log(self.trajectory_prob)
-        loss = - (self.total_reward - self.baseline) * log_prob
-        self.batch_loss.append(loss)
+        trajectory_log_prob = torch.sum(torch.log(torch.stack(
+            [prob[0][index] for prob, index in self.episode_trajectory])))
+        loss = - (self.total_reward - self.baseline) * trajectory_log_prob
+        self.batch_loss += loss
 
-    def reset_trajectory(self):
-        self.trajectory_prob = 1
+        self.episode_trajectory = []
 
     def train(self):
-        loss = torch.tensor(self.batch_loss, requires_grad=True).mean()
+        loss = self.batch_loss / self.batch_size
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        self.batch_loss = []
+        self.batch_loss = 0

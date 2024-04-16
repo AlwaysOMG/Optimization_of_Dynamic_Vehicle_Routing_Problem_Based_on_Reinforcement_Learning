@@ -14,7 +14,7 @@ class ProbLayer(nn.Module):
         q = self.q_weight(x[0])
         k = self.k_weight(x[1])
         u = self.clip_c * torch.tanh(torch.matmul(q, k.T))
-        mask_u = u.masked_fill(mask, float('-inf'))
+        mask_u = torch.where(mask, float('-inf'), u)
         prob = F.softmax(mask_u, dim=-1)
 
         return prob

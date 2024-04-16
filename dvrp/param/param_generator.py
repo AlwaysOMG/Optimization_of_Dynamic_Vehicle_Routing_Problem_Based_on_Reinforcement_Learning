@@ -23,6 +23,7 @@ class ParamGenerator:
         self.late_penalty_upper_limit = float(instance_config['late_penalty_upper_limit'])
 
     def generate_parameter(self):
+        random.seed(1)
         total_demand = 0
         node_param_list = []
         for i in range(self.customer_num+1):

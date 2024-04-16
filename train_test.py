@@ -1,3 +1,4 @@
+import configparser
 import copy
 import datetime
 from torch.utils.tensorboard import SummaryWriter
@@ -12,15 +13,26 @@ date = datetime.date.today()
 time = datetime.datetime.now().strftime("%H-%M-%S")
 writer = SummaryWriter(log_dir=f"log/{date}_{time}")
 
+config = configparser.ConfigParser()
+config.read("./train.cfg")
+train_config = config['reinforce']
+
+lr = float(train_config["learning_rate"])
+batch_size = int(train_config["batch_size"])
+epochs_num = int(train_config["epochs_num"])
+steps_num = int(train_config["steps_num"])
+
 env = DVRP()
 mgr = RouteManager(env)
 model = DynamicAttentionModel(mgr.get_feature_dim())
-agent = REINFORCE(model, 0.00001)
+agent = REINFORCE(model, lr, batch_size)
 
-for epoch in range(30):
-    for step in range(10000):
+total_episode = 1
+total_step = 1
+for epoch in range(epochs_num):
+    for step in range(steps_num):
         step_reward = 0
-        for batch in range(128):
+        for batch in range(batch_size):
             obs = env.reset()
             copy_env = copy.deepcopy(env)
             copy_mgr = RouteManager(copy_env)
@@ -31,12 +43,13 @@ for epoch in range(30):
                 obs, reward, is_done = env.step(route)
     
                 _, obs_info = mgr.obs_to_tensor(obs)
-                agent.memory_trajectory(action, obs_info)
+                agent.memory_trajectory(obs_info)
 
                 if is_done:
                     agent.set_total_reward(reward)
-                    agent.reset_trajectory()
                     step_reward += reward
+                    writer.add_scalar('episode reward', reward, total_episode)
+                    total_episode += 1
                     break
             
             # baseline
@@ -53,14 +66,9 @@ for epoch in range(30):
             
             agent.cal_loss()
         
-        step_reward /= 128
-        writer.add_scalar('step reward', step_reward, step)
+        step_reward /= batch_size
+        writer.add_scalar('step reward', step_reward, total_step)
+        total_step += 1
 
         agent.train()
-        
-        
-            
-            
-
-            
-
+    

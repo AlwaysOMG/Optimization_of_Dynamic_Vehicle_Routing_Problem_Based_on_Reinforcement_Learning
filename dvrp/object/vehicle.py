@@ -23,9 +23,12 @@ class Vehicle:
                 self.target_node = self.route.get_next_customer()
                 if self.target_node == None or self.current_node == self.target_node:
                     break
+                #print(f"vehicle {self.id}: set to drive to {self.target_node.get_id()}")
+
                 self.road = self.dvrp.get_road(self.current_node, self.target_node)
                 if self.road == None:
                     raise AttributeError(f"{self.current_node.get_id()} -> {self.target_node.get_id()}")
+                
                 self.road_left_distance = self.road.get_dist()
                 travel_time = self.road.get_travel_time()
             else:
@@ -44,11 +47,11 @@ class Vehicle:
                 # service
                 if self.current_node == self.dvrp.get_depot():
                     self.capacity = self.max_capacity
-                    #print(f"{self.id} bact to depot at {current_time}")
+                    #print(f"vehicle {self.id}: bact to depot at time {current_time}")
                 else:
                     self.provide_service(self.current_node, current_time)
                     left_time -= travel_time
-                    #print(f"{self.id} finish {self.current_node.get_id()} at {current_time}")
+                    #print(f"vehicle {self.id}: finish {self.current_node.get_id()} at time {current_time}")
             else:
                 # time advance
                 current_time += left_time
@@ -56,7 +59,6 @@ class Vehicle:
                 # vehicle is still on the road
                 self.road_left_distance -= self.road.get_speed() * left_time
                 left_time = 0
-                #print(f"{self.id} on the way to {self.target_node.get_id()} at {current_time}")        
     
     def provide_service(self, node, current_time):
         self.capacity -= node.get_demand()
@@ -74,7 +76,7 @@ class Vehicle:
         return self.current_node
 
     def get_cost(self):
-        return self.total_travel_time + self.penalty
+        return self.total_travel_time
     
     def get_obs(self):
         loc = self.target_node.get_id() if self.target_node else self.current_node.get_id()

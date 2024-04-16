@@ -16,14 +16,13 @@ class DVRP:
 
     def __init__(self):
         self.param_generator = ParamGenerator()
+        self.node_param, self.vehicle_param = self.param_generator.generate_parameter()
     
     def reset(self):
-        node_param, vehicle_param = self.param_generator.generate_parameter()
-
-        self.node_list = [Depot(self, node_param[0])] + \
-            [Customer(self, p) for p in node_param[1:]]
+        self.node_list = [Depot(self, self.node_param[0])] + \
+            [Customer(self, p) for p in self.node_param[1:]]
         self.depot = self.node_list[0]
-        self.vehicle_list = [Vehicle(self, p) for p in vehicle_param]
+        self.vehicle_list = [Vehicle(self, p) for p in self.vehicle_param]
         self.network = Network(self.node_list, self.travel_time_cv)
 
         self.current_time = 0
@@ -76,8 +75,7 @@ class DVRP:
     
     def get_reward(self, is_done):
         if is_done == True:
-            vehicle_cost = sum(vehicle.get_cost() for vehicle in self.vehicle_list)
-            total_cost = vehicle_cost + self.unserved_penalty
+            total_cost = sum(vehicle.get_cost() for vehicle in self.vehicle_list)
             return -total_cost
         else:
             return 0
