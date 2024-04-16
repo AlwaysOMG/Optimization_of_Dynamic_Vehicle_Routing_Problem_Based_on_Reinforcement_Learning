@@ -35,16 +35,16 @@ class Decoder(nn.Module):
 
     def set_node_info(self, node_info):
         self.node_info = node_info
+        
+        for info in self.vehicle_info:
+            target_node_id = info[0]
+            if target_node_id != 0:
+                self.node_info[target_node_id][1] = True
 
     def make_mean_mask(self):
         # mask the served customer
         check_list = [node[1] == True for node in self.node_info]
-        # mask the target node of vehicles
-        for info in self.vehicle_info:
-            target_node_id = info[0]
-            if target_node_id != 0:
-                check_list[target_node_id] = True
-
+        
         return torch.tensor(check_list).to(self.device)
 
     def make_vehicle_embed(self, x, vehicle_id):
@@ -60,15 +60,12 @@ class Decoder(nn.Module):
         # mask the served customer and the customer over capacity
         check_list = [(node[1] == True) or (node[0] > self.vehicle_info[vehicle_id][1])
                       for node in self.node_info]
-        # mask the target node of vehicles
-        for info in self.vehicle_info:
-            target_node_id = info[0]
-            if target_node_id != 0:
-                check_list[target_node_id] = True
+        
         # mask the depot if the vehicle is at the depot
         if self.vehicle_info[vehicle_id][0] == 0:
             check_list[0] = True
         
+        #　if all nodes are mask, then unmask depot
         if all(check_list):
             check_list[0] = False
 
@@ -77,21 +74,22 @@ class Decoder(nn.Module):
     def sample_customer(self, prob, is_greedy):
         id = torch.argmax(prob, dim=1).item() if is_greedy \
             else Categorical(prob).sample().item()
-        p = prob[0, id].item()
 
-        return id, p
+        return id
     
     def update_info(self, vehicle_id, node_id):
-        self.vehicle_info[vehicle_id][1] -= self.node_info[node_id][0]
         self.vehicle_info[vehicle_id][0] = node_id
-        self.node_info[node_id][1] = True
+        self.vehicle_info[vehicle_id][1] -= self.node_info[node_id][0]
+
+        if node_id != 0:
+            self.node_info[node_id][1] = True
     
     def forward(self, x, is_greedy=False):
         route_list = []
-        route_prob = []
+        route_prob_list = []
         for vehicle_id in range(len(self.vehicle_info)):
             route = []
-            prob_dict = {}
+            route_prob = []
             while True:
                 vehicle_embed = self.make_vehicle_embed(x, vehicle_id)
                 attn_mask = self.make_attn_mask(vehicle_id)
@@ -99,16 +97,16 @@ class Decoder(nn.Module):
                                                 key_padding_mask=attn_mask)[0]
                 
                 prob = self.prob_layer([vehicle_embed, x], attn_mask)
-                node_id, node_prob = self.sample_customer(prob, is_greedy)                
+                node_id = self.sample_customer(prob, is_greedy)              
                 route.append(node_id)
-                prob_dict[node_id] = node_prob
+                route_prob.append((prob, node_id))
                 
                 if node_id == 0:
                     route_list.append(route)
-                    route_prob.append(prob_dict)
+                    route_prob_list.append(route_prob)
                     break
 
                 self.update_info(vehicle_id, node_id)
         
-        return route_list, route_prob
+        return route_list, route_prob_list
             
