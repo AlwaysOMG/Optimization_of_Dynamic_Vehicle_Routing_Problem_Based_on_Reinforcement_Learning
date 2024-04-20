@@ -75,8 +75,14 @@ class Vehicle:
     def get_location(self):
         return self.current_node
 
-    def get_cost(self):
+    def get_travel_cost(self):
         return self.total_travel_time
+    
+    def get_penalty_cost(self):
+        return self.penalty
+    
+    def get_total_cost(self):
+        return self.total_travel_time + self.penalty
     
     def get_obs(self):
         loc = self.target_node.get_id() if self.target_node else self.current_node.get_id()

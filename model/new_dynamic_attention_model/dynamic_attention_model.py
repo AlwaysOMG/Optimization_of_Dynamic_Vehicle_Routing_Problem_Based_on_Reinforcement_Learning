@@ -6,7 +6,7 @@ from model.new_dynamic_attention_model.encoder import Encoder
 from model.new_dynamic_attention_model.decoder import Decoder
 
 config = configparser.ConfigParser()
-config.read("./model/new_dynamic_attention_model/model.cfg")
+config.read("./config.cfg")
 parameter_config = config['parameter']
 
 class DynamicAttentionModel(nn.Module):

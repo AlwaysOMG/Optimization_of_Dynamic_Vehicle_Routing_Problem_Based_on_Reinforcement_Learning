@@ -57,10 +57,13 @@ class REINFORCE:
 
         self.episode_trajectory = []
 
-    def train(self):
+    def update_parameter(self):
         loss = self.batch_loss / self.batch_size
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
         self.batch_loss = 0
+
+    def save_model(self, epoch):
+        torch.save(self.model.state_dict(), f"./model/new_dynamic_attention_model/parameter/{epoch}.pth")

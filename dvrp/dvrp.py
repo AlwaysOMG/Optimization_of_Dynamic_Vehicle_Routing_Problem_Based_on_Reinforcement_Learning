@@ -6,7 +6,7 @@ from dvrp.object.node import Depot, Customer
 from dvrp.object.network import Network
 
 config = configparser.ConfigParser()
-config.read("./dvrp/dvrp.cfg")
+config.read("./config.cfg")
 instance_config = config['instance']
 
 class DVRP:
@@ -16,21 +16,18 @@ class DVRP:
 
     def __init__(self):
         self.param_generator = ParamGenerator()
-        self.node_param, self.vehicle_param = self.param_generator.generate_parameter()
     
     def reset(self):
+        self.current_time = 0
+
+        self.node_param, self.vehicle_param = self.param_generator.generate_parameter()      
         self.node_list = [Depot(self, self.node_param[0])] + \
             [Customer(self, p) for p in self.node_param[1:]]
         self.depot = self.node_list[0]
         self.vehicle_list = [Vehicle(self, p) for p in self.vehicle_param]
         self.network = Network(self.node_list, self.travel_time_cv)
 
-        self.current_time = 0
-        self.unserved_penalty = 0
-
-        obs = self.get_observation()
-
-        return obs
+        return self.get_observation()
 
     def step(self, route_list):
         self.move_vehicle(route_list)
@@ -75,10 +72,16 @@ class DVRP:
     
     def get_reward(self, is_done):
         if is_done == True:
-            total_cost = sum(vehicle.get_cost() for vehicle in self.vehicle_list)
+            total_cost = sum(vehicle.get_total_cost() for vehicle in self.vehicle_list)
             return -total_cost
         else:
             return 0
+        
+    def get_travel_cost(self):
+        return sum(vehicle.get_travel_cost() for vehicle in self.vehicle_list)
+    
+    def get_penalty_cost(self):
+        return sum(vehicle.get_penalty_cost() for vehicle in self.vehicle_list)
     
     def get_depot(self):
         return self.depot
@@ -91,21 +94,3 @@ class DVRP:
 
     def get_num_node(self):
         return self.node_num
-
-    def display(self):
-        print("Node")
-        for node in self.node_list:
-            print(f"{node.id}: ({node.x_loc}, {node.y_loc})")
-            if node != self.depot:
-                print(f"demand: {node.demand}, time window: [{node.earliest_service_time}, {node.latest_service_time}]")
-                print(f"penalty: ({node.early_penalty}, {node.late_penalty})")
-        
-        print("Vehicle")
-        for vehicle in self.vehicle_list:
-            print(f"{vehicle.id}: {vehicle.capacity}")
-        
-        print("Network")
-        for row in self.network.road_matrix:
-            for r in row:
-                if r != None:
-                    print(f"dist: {r.get_dist()}, travel time: {r.get_travel_time()}")
