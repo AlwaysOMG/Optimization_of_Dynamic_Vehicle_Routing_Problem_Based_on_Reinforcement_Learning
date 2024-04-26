@@ -42,10 +42,8 @@ class Decoder(nn.Module):
                 self.node_info[target_node_id][1] = True
 
     def make_mean_mask(self):
-        # mask the served customer
-        check_list = [node[1] == True for node in self.node_info]
-        
-        return torch.tensor(check_list).to(self.device)
+        # mask the served customer       
+        return torch.tensor([node[1] == True for node in self.node_info])
 
     def make_vehicle_embed(self, x, vehicle_id):
         mask = self.make_mean_mask()

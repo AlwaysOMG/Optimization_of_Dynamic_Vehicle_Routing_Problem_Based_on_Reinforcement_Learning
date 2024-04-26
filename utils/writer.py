@@ -6,8 +6,10 @@ class Writer:
     date = datetime.date.today()
     time = datetime.datetime.now().strftime("%H-%M-%S")
     
-    def __init__(self):
-        self.writer = SummaryWriter(log_dir=f"log/{self.date}_{self.time}")
+    def __init__(self, is_test=False):
+        if not is_test:
+            self.writer = SummaryWriter(log_dir=f"log/{self.date}_{self.time}")
+        
         self.episode = 0
         self.step = 0
         self.epoch = 0
@@ -33,7 +35,7 @@ class Writer:
 
     def epoch_record(self):
         self.epoch += 1
-        r = self.step_reward_list[-1]
+        r = sum(self.step_reward_list) / len(self.step_reward_list)
         self.writer.add_scalar('epoch reward', r, self.epoch)
         self.step_reward_list = []
 

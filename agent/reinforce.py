@@ -1,6 +1,3 @@
-import configparser
-
-import numpy as np
 import torch
 import torch.optim as optim
 
@@ -26,22 +23,12 @@ class REINFORCE:
     def memory_trajectory(self, info):
         for vehicle_id, route_prob in enumerate(self.route_prob_list):
             target_node = info[0][vehicle_id][0]
-            found_target = False
             for i, prob_tuple in enumerate(route_prob):
                 if prob_tuple[1] == target_node:
                     before_route_prob = route_prob[:i+1]
                     self.episode_trajectory.extend(before_route_prob)
-                    found_target = True
-
-                    # detach unused tensor
-                    for later_prob_tuple in route_prob[i+1:]:
-                        later_prob_tuple[0].detach()
-
                     break
-            
-            if not found_target:
-                for prob_tuple in route_prob:
-                    prob_tuple[0].detach()        
+            route_prob.clear()
     
     def set_total_reward(self, total_reward):
         self.total_reward = total_reward
@@ -66,4 +53,4 @@ class REINFORCE:
         self.batch_loss = 0
 
     def save_model(self, epoch):
-        torch.save(self.model.state_dict(), f"./model/new_dynamic_attention_model/parameter/{epoch}.pth")
+        self.model.save_model(epoch)

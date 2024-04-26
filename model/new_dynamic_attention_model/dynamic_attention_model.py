@@ -36,3 +36,8 @@ class DynamicAttentionModel(nn.Module):
         route, prob = self.decoder(encoder_output, is_greedy)
 
         return route, prob
+    
+    def save_model(self, epoch):
+        torch.save(self.model.state_dict(), f"./model/new_dynamic_attention_model/parameter/
+                   {self.embed_dim}_{self.num_layers}_{self.num_heads}/{epoch+1}.pth")
+

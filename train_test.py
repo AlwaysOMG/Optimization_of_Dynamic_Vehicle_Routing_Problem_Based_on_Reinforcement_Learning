@@ -8,8 +8,8 @@ from agent.reinforce import REINFORCE
 
 lr = 1e-4
 batch_size = 128
-epochs_num = 1
 steps_num = 10
+epochs_num = 1
 
 env = DVRP()
 mgr = RouteManager(env)
@@ -17,8 +17,8 @@ model = DynamicAttentionModel(mgr.get_feature_dim())
 agent = REINFORCE(model, lr, batch_size)
 
 for epoch in range(epochs_num):
-    for step in tqdm(range(steps_num), desc="step"):
-        for batch in tqdm(range(batch_size), desc="batch"):
+    for step in tqdm(range(steps_num)):
+        for batch in range(batch_size):
             obs = env.reset()
             copy_env = copy.deepcopy(env)
             copy_mgr = RouteManager(copy_env)
@@ -34,7 +34,7 @@ for epoch in range(epochs_num):
                 if is_done:
                     agent.set_total_reward(reward)
                     break
-            
+
             # baseline
             obs = copy_env.get_observation()
             while True:

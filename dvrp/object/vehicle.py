@@ -26,9 +26,6 @@ class Vehicle:
                 #print(f"vehicle {self.id}: set to drive to {self.target_node.get_id()}")
 
                 self.road = self.dvrp.get_road(self.current_node, self.target_node)
-                if self.road == None:
-                    raise AttributeError(f"{self.current_node.get_id()} -> {self.target_node.get_id()}")
-                
                 self.road_left_distance = self.road.get_dist()
                 travel_time = self.road.get_travel_time()
             else:
@@ -50,11 +47,10 @@ class Vehicle:
                     #print(f"vehicle {self.id}: bact to depot at time {current_time}")
                 else:
                     self.provide_service(self.current_node, current_time)
-                    left_time -= travel_time
                     #print(f"vehicle {self.id}: finish {self.current_node.get_id()} at time {current_time}")
+                left_time -= travel_time
             else:
                 # time advance
-                current_time += left_time
                 self.total_travel_time += left_time
                 # vehicle is still on the road
                 self.road_left_distance -= self.road.get_speed() * left_time
