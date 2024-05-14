@@ -94,3 +94,6 @@ class DVRP:
 
     def get_num_node(self):
         return self.node_num
+    
+    def get_current_time(self):
+        return self.current_time
