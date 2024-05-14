@@ -23,6 +23,8 @@ class Vehicle:
                 self.target_node = self.route.get_next_customer()
                 if self.target_node == None or self.current_node == self.target_node:
                     break
+                if self.target_node.get_id() != 0 and self.target_node.check_served():
+                    break
                 #print(f"vehicle {self.id}: set to drive to {self.target_node.get_id()}")
 
                 self.road = self.dvrp.get_road(self.current_node, self.target_node)

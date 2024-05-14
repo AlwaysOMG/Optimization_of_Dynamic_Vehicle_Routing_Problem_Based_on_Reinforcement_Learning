@@ -25,7 +25,7 @@ agent = REINFORCE(model, lr, batch_size)
 writer = Writer()
 
 # training
-for epoch in range(20):
+for epoch in range(epochs_num):
     for step in range(steps_num):
         for batch in range(batch_size):
             obs = env.reset()
@@ -58,7 +58,7 @@ for epoch in range(20):
                         agent.set_baseline(reward)
                         break
             
-            agent.cal_loss()       
+            agent.cal_loss()
         
         agent.update_parameter()
         writer.step_record()

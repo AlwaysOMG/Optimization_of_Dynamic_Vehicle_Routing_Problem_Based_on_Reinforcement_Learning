@@ -15,9 +15,14 @@ class Road:
         self.sample_travel_time()
     
     def sample_travel_time(self):
-        self.travel_time = np.random.normal(self.dist, self.std, 1)[0]
-        while self.travel_time <= 0:
+        # avoid infinite loop
+        max_iterations = 10
+        for _ in range(max_iterations):
             self.travel_time = np.random.normal(self.dist, self.std, 1)[0]
+            if self.travel_time > 0:
+                break
+        else:
+            self.travel_time = 0.01
         self.speed = self.dist / self.travel_time
     
     def get_dist(self):
