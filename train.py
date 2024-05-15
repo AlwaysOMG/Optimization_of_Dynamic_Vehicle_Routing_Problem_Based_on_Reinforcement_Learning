@@ -6,7 +6,7 @@ from dvrp.dvrp import DVRP
 from dvrp.route_manager import RouteManager
 from model.new_dynamic_attention_model.dynamic_attention_model import DynamicAttentionModel
 from agent.reinforce import REINFORCE
-from utils.writer import Writer
+from utils.writer import Writer # tensorboard --logdir='log'
 
 # load parameters
 config = configparser.ConfigParser()
@@ -16,13 +16,14 @@ lr = float(train_config["learning_rate"])
 batch_size = int(train_config["batch_size"])
 epochs_num = int(train_config["epochs_num"])
 steps_num = int(train_config["steps_num"])
+customer_num = int(config["instance"]["customer_num"])
 
 # init instance
 env = DVRP()
 mgr = RouteManager(env)
-model = DynamicAttentionModel(mgr.get_feature_dim())
+model = DynamicAttentionModel(customer_num, mgr.get_feature_dim())
 agent = REINFORCE(model, lr, batch_size)
-writer = Writer()
+writer = Writer(customer_num)
 
 # training
 for epoch in range(epochs_num):
