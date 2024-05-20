@@ -11,9 +11,13 @@ batch_size = 128
 steps_num = 10
 epochs_num = 1
 
+import configparser
+config = configparser.ConfigParser()
+customer_num = int(config["instance"]["customer_num"])
+
 env = DVRP()
 mgr = RouteManager(env)
-model = DynamicAttentionModel(mgr.get_feature_dim())
+model = DynamicAttentionModel(customer_num, mgr.get_feature_dim())
 agent = REINFORCE(model, lr, batch_size)
 
 for epoch in range(epochs_num):

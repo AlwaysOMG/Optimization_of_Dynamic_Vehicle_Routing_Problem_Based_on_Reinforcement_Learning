@@ -40,10 +40,13 @@ class DVRP:
         return obs, reward, is_done
 
     def move_vehicle(self, route_list):
+        latest_finish_time = 0
         for vehicle, route in zip(self.vehicle_list, route_list):
             vehicle.set_route(route)
-            vehicle.drive(self.current_time, self.update_interval)
-        self.current_time += self.update_interval
+            finish_time = vehicle.drive(self.current_time, self.update_interval)
+            if finish_time > latest_finish_time:
+                latest_finish_time = finish_time
+        self.current_time += latest_finish_time
 
     def update_travel_time(self):
         self.network.update_travel_time()

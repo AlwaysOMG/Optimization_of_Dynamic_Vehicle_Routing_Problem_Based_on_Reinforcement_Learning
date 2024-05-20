@@ -16,6 +16,9 @@ class Vehicle:
     def drive(self, start_time, time_interval):
         current_time = start_time
         left_time = time_interval
+
+        is_on_road = False
+        latest_finish_time = 0
             
         while left_time > 0:
             if self.road == None:
@@ -51,12 +54,19 @@ class Vehicle:
                     self.provide_service(self.current_node, current_time)
                     #print(f"vehicle {self.id}: finish {self.current_node.get_id()} at time {current_time}")
                 left_time -= travel_time
+                latest_finish_time += travel_time
             else:
                 # time advance
                 self.total_travel_time += left_time
                 # vehicle is still on the road
                 self.road_left_distance -= self.road.get_speed() * left_time
                 left_time = 0
+                is_on_road = True
+        
+        if is_on_road:
+            return time_interval
+        else:
+            return latest_finish_time
     
     def provide_service(self, node, current_time):
         self.capacity -= node.get_demand()
