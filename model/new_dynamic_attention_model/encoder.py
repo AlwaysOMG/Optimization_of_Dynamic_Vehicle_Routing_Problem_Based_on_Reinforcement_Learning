@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+torch.manual_seed(0)
+
 class Sublayer(nn.Module):
     def __init__(self, embed_dim, num_heads, ff_dim):
         super().__init__()
@@ -34,7 +36,7 @@ class Encoder(nn.Module):
         self.dynamic_embed = nn.Linear(dynamic_feature_dim, embed_dim)
         self.dynamic_layers = nn.ModuleList([Sublayer(embed_dim, num_heads, self.ff_dim) for _ in range(num_layers)])
 
-        self.combined_layer = nn.Linear(embed_dim*2, embed_dim)
+        self.fusion_layer = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
     
     def forward(self, x):        
         static_x = x[0].to(self.device)
@@ -47,6 +49,7 @@ class Encoder(nn.Module):
         for i in range(self.num_layers):
             dynamic_x = self.dynamic_layers[i](dynamic_x)
 
-        combined_x = self.combined_layer(torch.cat((static_x, dynamic_x), dim=1))
+        #combined_x = self.combined_layer(torch.cat((static_x, dynamic_x), dim=1))
+        combined_x = self.fusion_layer(dynamic_x, static_x, static_x)[0]
         
         return combined_x

@@ -38,7 +38,7 @@ class REINFORCE:
 
     def cal_loss(self):
         trajectory_log_prob = torch.sum(torch.log(torch.stack(
-            [prob[0][index] for prob, index in self.episode_trajectory])))
+            [tup[0] for tup in self.episode_trajectory])))
         loss = - (self.total_reward - self.baseline) * trajectory_log_prob
         self.batch_loss += loss
 
