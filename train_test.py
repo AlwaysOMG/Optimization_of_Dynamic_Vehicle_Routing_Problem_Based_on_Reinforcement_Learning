@@ -4,21 +4,22 @@ from tqdm import tqdm
 from dvrp.dvrp import DVRP
 from dvrp.route_manager import RouteManager
 from model.new_dynamic_attention_model.dynamic_attention_model import DynamicAttentionModel
-from agent.reinforce import REINFORCE
+from agent.ppo import PPO
 
 lr = 1e-4
-batch_size = 128
+batch_size = 4
 steps_num = 10
 epochs_num = 1
 
 import configparser
 config = configparser.ConfigParser()
+config.read("./config.cfg")
 customer_num = int(config["instance"]["customer_num"])
 
 env = DVRP()
 mgr = RouteManager(env)
 model = DynamicAttentionModel(customer_num, mgr.get_feature_dim())
-agent = REINFORCE(model, lr, batch_size)
+agent = PPO(model, lr, batch_size)
 
 for epoch in range(epochs_num):
     for step in tqdm(range(steps_num)):
@@ -31,11 +32,12 @@ for epoch in range(epochs_num):
                 action = agent.get_action(obs_tensor, obs_info, False)
                 route = mgr.action_to_route(action)
                 obs, reward, is_done = env.step(route)
-    
+
                 _, obs_info = mgr.obs_to_tensor(obs)
-                agent.memory_trajectory(obs_info)
+                agent.record_serveded_customer(obs_info)
 
                 if is_done:
+                    agent.memory()
                     agent.set_total_reward(reward)
                     break
 
@@ -50,7 +52,5 @@ for epoch in range(epochs_num):
                 if is_done:
                     agent.set_baseline(reward)
                     break
-            
-            agent.cal_loss()
 
         agent.update_parameter()

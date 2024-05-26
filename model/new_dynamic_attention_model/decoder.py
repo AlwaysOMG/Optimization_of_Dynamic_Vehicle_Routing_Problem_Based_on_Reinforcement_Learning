@@ -1,7 +1,10 @@
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Categorical
+
+torch.manual_seed(0)
 
 class ProbLayer(nn.Module):
     def __init__(self, embed_dim, clip_c):
@@ -31,10 +34,10 @@ class Decoder(nn.Module):
         self.device = device
     
     def set_vehicle_info(self, vehicle_info):
-        self.vehicle_info = vehicle_info
+        self.vehicle_info = copy.deepcopy(vehicle_info)
 
     def set_node_info(self, node_info):
-        self.node_info = node_info
+        self.node_info = copy.deepcopy(node_info)
         
         for info in self.vehicle_info:
             target_node_id = info[0]
@@ -97,7 +100,7 @@ class Decoder(nn.Module):
                 prob = self.prob_layer([vehicle_embed, x], attn_mask)
                 node_id = self.sample_customer(prob, is_greedy)              
                 route.append(node_id)
-                route_prob.append((prob, node_id))
+                route_prob.append((prob[0][node_id], node_id))
                 
                 if node_id == 0:
                     route_list.append(route)
@@ -108,3 +111,20 @@ class Decoder(nn.Module):
         
         return route_list, route_prob_list
             
+    def get_route_prob(self, x, action):
+        route_prob_list = []
+        for vehicle_id in range(len(self.vehicle_info)):
+            route_prob = []
+            for prob_node_tuple in action[vehicle_id]:
+                vehicle_embed = self.make_vehicle_embed(x, vehicle_id)
+                attn_mask = self.make_attn_mask(vehicle_id)
+                vehicle_embed = self.attn_layer(vehicle_embed, x, x, 
+                                                key_padding_mask=attn_mask)[0]
+                
+                prob = self.prob_layer([vehicle_embed, x], attn_mask)[0]
+                node_id = prob_node_tuple[1]
+                route_prob.append(prob[node_id])
+                self.update_info(vehicle_id, node_id)
+            route_prob_list.append(route_prob)
+        
+        return route_prob_list
