@@ -14,7 +14,7 @@ class ACO:
         self.vehicle_num = len(self.vehicle_obs)
 
         self.num_ants = 10
-        self.num_iterations = 50
+        self.num_iterations = 100
         self.alpha = 1
         self.beta = 5
         self.evaporation_rate = 0.1
