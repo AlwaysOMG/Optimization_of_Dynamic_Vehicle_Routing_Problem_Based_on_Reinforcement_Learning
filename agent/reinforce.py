@@ -44,12 +44,19 @@ class REINFORCE:
 
         self.episode_trajectory = []
 
-    def update_parameter(self):
+    def update_parameter(self, show_grad=False):
         loss = self.batch_loss / self.batch_size
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
         self.optimizer.step()
 
+        if show_grad:
+            for name, param in self.model.named_parameters():
+                if param.grad is not None:
+                    grad_norm = param.grad.norm().item()
+                    print(f'Gradient norm for {name}: {grad_norm}')
+        
         self.batch_loss = 0
 
     def save_model(self, epoch):

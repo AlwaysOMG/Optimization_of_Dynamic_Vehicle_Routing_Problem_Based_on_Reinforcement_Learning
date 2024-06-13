@@ -16,14 +16,14 @@ lr = float(train_config["learning_rate"])
 batch_size = int(train_config["batch_size"])
 epochs_num = int(train_config["epochs_num"])
 steps_num = int(train_config["steps_num"])
-customer_num = int(config["instance"]["customer_num"])
 
 # init instance
 env = DVRP()
 mgr = RouteManager(env)
-model = DynamicAttentionModel(customer_num, mgr.get_feature_dim())
+model = DynamicAttentionModel(mgr.get_feature_dim())
+#model.load_state_dict(torch.load('./model/new_dynamic_attention_model/parameter/50/128_3_4_3.pth'))
 agent = REINFORCE(model, lr, batch_size)
-writer = Writer(customer_num)
+writer = Writer()
 
 # training
 for epoch in range(epochs_num):

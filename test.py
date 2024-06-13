@@ -22,16 +22,16 @@ customer_num = int(config["instance"]["customer_num"])
 # init instance
 env = DVRP()
 mgr = RouteManager(env)
-model = DynamicAttentionModel(customer_num, mgr.get_feature_dim())
-model.load_state_dict(torch.load('./model/new_dynamic_attention_model/parameter/50/128_3_4_46.pth'))
+model = DynamicAttentionModel(mgr.get_feature_dim())
+model.load_state_dict(torch.load('./model/new_dynamic_attention_model/parameter/50/origin.pth'))
 agent = REINFORCE(model, 0, 0)
-writer = Writer(customer_num, is_test=True)
+writer = Writer(is_test=True)
 
 # testing
 for i in trange(test_instance):
     start_time = time.time()
     obs = env.reset()
-    while True:        
+    while True:
         obs_tensor, obs_info = mgr.obs_to_tensor(obs)
         action = agent.get_action(obs_tensor, obs_info, True)
         route = mgr.action_to_route(action)

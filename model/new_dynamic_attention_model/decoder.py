@@ -4,8 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Categorical
 
-torch.manual_seed(0)
-
 class ProbLayer(nn.Module):
     def __init__(self, embed_dim, clip_c):
         super().__init__()
@@ -16,7 +14,7 @@ class ProbLayer(nn.Module):
     def forward(self, x, mask):
         q = self.q_weight(x[0])
         k = self.k_weight(x[1])
-        u = self.clip_c * torch.tanh(torch.matmul(q, k.T))
+        u = self.clip_c * F.tanh(torch.matmul(q, k.T))
         mask_u = torch.where(mask, float('-inf'), u)
         prob = F.softmax(mask_u, dim=-1)
 
@@ -25,10 +23,13 @@ class ProbLayer(nn.Module):
 class Decoder(nn.Module):
     vehicle_info = None
     node_info = None
+    travel_time_matrix = None
+    decision_time = None
+    current_time = None
 
     def __init__(self, embed_dim, num_heads, clip_c, device):
         super().__init__()
-        self.combined_layer = nn.Linear(embed_dim*2+1, embed_dim)
+        self.combined_layer = nn.Linear(embed_dim*2+2, embed_dim)
         self.attn_layer = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
         self.prob_layer = ProbLayer(embed_dim, clip_c)
         self.device = device
@@ -44,16 +45,29 @@ class Decoder(nn.Module):
             if target_node_id != 0:
                 self.node_info[target_node_id][1] = True
 
+    def set_travel_time(self, travel_time):
+        self.travel_time_matrix = travel_time
+
+    def set_decision_time(self, decision_time):
+        self.decision_time = decision_time
+        self.current_time = decision_time
+
     def make_mean_mask(self):
-        # mask the served customer       
+        # mask the served customer
         return torch.tensor([node[1] == True for node in self.node_info])
 
     def make_vehicle_embed(self, x, vehicle_id):
         mask = self.make_mean_mask()
-        mean_embed = x[~mask].mean(dim=0).unsqueeze(0)
-        selected_node_embed = x[self.vehicle_info[vehicle_id][0]].unsqueeze(0)
-        capacity_tensor = torch.tensor([[self.vehicle_info[vehicle_id][1]]], dtype=torch.float32).to(self.device)
-        combined_embed = self.combined_layer(torch.cat((mean_embed, selected_node_embed, capacity_tensor), dim=1))
+        safe_capacity = max(self.vehicle_info[vehicle_id][1], 1e-6)
+        safe_total_capacity = max(sum(info[1] for info in self.vehicle_info), 1e-6)
+        safe_current_time = max(self.current_time, 1e-6)
+        
+        with torch.no_grad():
+            mean_embed = x[~mask].mean(dim=0).unsqueeze(0)
+            selected_node_embed = x[self.vehicle_info[vehicle_id][0]].unsqueeze(0)
+            capacity_tensor = torch.tensor([[safe_capacity/safe_total_capacity]], dtype=torch.float32).to(self.device)
+            time_tensor = torch.tensor([[safe_current_time/1000]], dtype=torch.float32).to(self.device)
+        combined_embed = self.combined_layer(torch.cat((mean_embed, selected_node_embed, capacity_tensor, time_tensor), dim=1))
 
         return combined_embed
     
@@ -79,6 +93,11 @@ class Decoder(nn.Module):
         return id
     
     def update_info(self, vehicle_id, node_id):
+        if node_id != 0:
+            self.current_time += self.travel_time_matrix[self.vehicle_info[vehicle_id][0], node_id].item()
+        else:
+            self.current_time = copy.deepcopy(self.decision_time)
+        
         self.vehicle_info[vehicle_id][0] = node_id
         self.vehicle_info[vehicle_id][1] -= self.node_info[node_id][0]
 
@@ -94,8 +113,9 @@ class Decoder(nn.Module):
             while True:
                 vehicle_embed = self.make_vehicle_embed(x, vehicle_id)
                 attn_mask = self.make_attn_mask(vehicle_id)
-                vehicle_embed = self.attn_layer(vehicle_embed, x, x, 
+                context_vector = self.attn_layer(vehicle_embed, x, x, 
                                                 key_padding_mask=attn_mask)[0]
+                vehicle_embed = torch.add(vehicle_embed, context_vector)
                 
                 prob = self.prob_layer([vehicle_embed, x], attn_mask)
                 node_id = self.sample_customer(prob, is_greedy)              

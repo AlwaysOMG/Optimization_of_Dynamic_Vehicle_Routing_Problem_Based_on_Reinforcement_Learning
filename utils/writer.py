@@ -1,14 +1,19 @@
+import configparser
 import datetime
 from torch.utils.tensorboard import SummaryWriter
 import csv
 
 class Writer:
+    config = configparser.ConfigParser()
+    config.read("./config.cfg")
+    customer_num = int(config["instance"]["customer_num"])
+    
     date = datetime.date.today()
     time = datetime.datetime.now().strftime("%H-%M-%S")
     
-    def __init__(self, customer_num, is_test=False):
+    def __init__(self, is_test=False):        
         if not is_test:
-            self.writer = SummaryWriter(log_dir=f"log/{customer_num}/{self.date}_{self.time}")
+            self.writer = SummaryWriter(log_dir=f"log/{self.customer_num}/{self.date}_{self.time}")
         
         self.episode = 0
         self.step = 0
