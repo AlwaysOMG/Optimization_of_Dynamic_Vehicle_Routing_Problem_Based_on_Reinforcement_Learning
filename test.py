@@ -8,8 +8,9 @@ from dvrp.route_manager import RouteManager
 from model.new_dynamic_attention_model.dynamic_attention_model import DynamicAttentionModel
 from agent.reinforce import REINFORCE
 from utils.writer import Writer
-from agent.aco import ACO
 from agent.alns_agent import ALNS_Solver
+from agent.ga import GA
+from agent.bso_aco import BSO_ACO
 
 # load parameters
 config = configparser.ConfigParser()
@@ -22,7 +23,7 @@ customer_num = int(config["instance"]["customer_num"])
 env = DVRP()
 mgr = RouteManager(env)
 model = DynamicAttentionModel(customer_num, mgr.get_feature_dim())
-model.load_state_dict(torch.load('./model/new_dynamic_attention_model/parameter/50/parameter_analysis/128_1e-5.pth'))
+model.load_state_dict(torch.load('./model/new_dynamic_attention_model/parameter/50/128_3_4_46.pth'))
 agent = REINFORCE(model, 0, 0)
 writer = Writer(customer_num, is_test=True)
 
@@ -30,19 +31,19 @@ writer = Writer(customer_num, is_test=True)
 for i in trange(test_instance):
     start_time = time.time()
     obs = env.reset()
-    while True:
-        """
+    while True:        
         obs_tensor, obs_info = mgr.obs_to_tensor(obs)
         action = agent.get_action(obs_tensor, obs_info, True)
         route = mgr.action_to_route(action)
         obs, reward, is_done = env.step(route)
+
+
         """
-        
-        t = env.get_current_time()
-        sol = ALNS_Solver(obs, t).run()
+        sol = ALNS_Solver(obs).run()
         route = mgr.action_to_route(sol)
         obs, reward, is_done = env.step(route)
         
+        """
         
         if is_done:
             break

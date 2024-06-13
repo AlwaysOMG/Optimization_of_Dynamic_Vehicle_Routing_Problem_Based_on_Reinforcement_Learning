@@ -14,6 +14,7 @@ class RouteManager:
         vehicle_obs = obs[0]
         node_obs = obs[1]
         road_obs = obs[2]
+        current_time = obs[3]
         
         static_tensor = torch.tensor([node[:-1] for node in node_obs])
         dynamic_tensor = torch.tensor(road_obs, dtype=torch.float32)
@@ -21,7 +22,7 @@ class RouteManager:
         vehicle_info = vehicle_obs                          # loc_node_id, capacity
         node_info = [[row[2], row[-1]] for row in node_obs] # demand, is_served
 
-        return [static_tensor, dynamic_tensor], [vehicle_info, node_info]
+        return [static_tensor, dynamic_tensor], [vehicle_info, node_info, current_time]
     
     def action_to_route(self, list):
         route = []

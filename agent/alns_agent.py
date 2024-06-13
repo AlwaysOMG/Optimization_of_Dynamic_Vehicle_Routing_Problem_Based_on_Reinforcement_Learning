@@ -57,7 +57,7 @@ class ALNS_Solver:
         self.initial_temperature = 400
         self.cooling_rate = 0.99985
         self.end_temperature = 1e-3
-        self.itr_num = 1000
+        self.itr_num = 30000
 
     def run(self):
         SEED = 0

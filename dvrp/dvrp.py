@@ -56,7 +56,7 @@ class DVRP:
         node_obs = [node.get_obs() for node in self.node_list]
         road_obs = self.network.get_obs()
 
-        return [vehicle_obs, node_obs, road_obs]
+        return [vehicle_obs, node_obs, road_obs, self.get_current_time()]
     
     def check_done(self):
         # check vehicle back to the depot
