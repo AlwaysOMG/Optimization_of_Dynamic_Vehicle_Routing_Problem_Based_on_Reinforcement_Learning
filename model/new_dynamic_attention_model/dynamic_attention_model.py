@@ -10,18 +10,18 @@ class DynamicAttentionModel(nn.Module):
 
     config = configparser.ConfigParser()
     config.read("./config.cfg")
-    parameter_config = config['parameter']
-    embed_dim = int(parameter_config["embed_dim"])
-    num_heads = int(parameter_config["num_heads"])
-    num_layers = int(parameter_config["num_layers"])
-    clip_c = int(parameter_config["clip_c"])
-    customer_num = int(config["instance"]["customer_num"])
+    embed_dim = int(config['parameter']["embed_dim"])
+    num_heads = int(config['parameter']["num_heads"])
+    num_layers = int(config['parameter']["num_layers"])
+    clip_c = int(config['parameter']["clip_c"])
 
-    def __init__(self, feature_dim):
+    customer_num = int(config["instance"]["customer_num"])
+    static_feature_dim = int(config["instance"]["feature_dim"])
+    dynamic_feature_dim = customer_num+1
+
+    def __init__(self):
         super().__init__()
-        static_feature_dim = feature_dim[0]
-        dynamic_feature_dim = feature_dim[1]
-        self.encoder = Encoder(static_feature_dim, dynamic_feature_dim, 
+        self.encoder = Encoder(self.static_feature_dim, self.dynamic_feature_dim, 
                                self.embed_dim, self.num_heads, self.num_layers, 
                                self.device)
         self.decoder = Decoder(self.embed_dim, self.num_heads, self.clip_c, 

@@ -3,26 +3,21 @@ import copy
 import torch
 
 from dvrp.dvrp import DVRP
-from dvrp.route_manager import RouteManager
-from model.new_dynamic_attention_model.dynamic_attention_model import DynamicAttentionModel
 from agent.reinforce import REINFORCE
 from utils.writer import Writer # tensorboard --logdir='log'
 
 # load parameters
 config = configparser.ConfigParser()
 config.read("./config.cfg")
-train_config = config['train']
-lr = float(train_config["learning_rate"])
-batch_size = int(train_config["batch_size"])
-epochs_num = int(train_config["epochs_num"])
-steps_num = int(train_config["steps_num"])
+lr = float(config['train']["learning_rate"])
+batch_size = int(config['train']["batch_size"])
+epochs_num = int(config['train']["epochs_num"])
+steps_num = int(config['train']["steps_num"])
 
 # init instance
 env = DVRP()
-mgr = RouteManager(env)
-model = DynamicAttentionModel(mgr.get_feature_dim())
-#model.load_state_dict(torch.load('./model/new_dynamic_attention_model/parameter/50/128_3_4_3.pth'))
-agent = REINFORCE(model, lr, batch_size)
+parameter_dir = './model/new_dynamic_attention_model/parameter/50/128_3_4_5.pth'
+agent = REINFORCE(parameter_dir, lr, batch_size)
 writer = Writer()
 
 # training
@@ -31,15 +26,10 @@ for epoch in range(epochs_num):
         for batch in range(batch_size):
             obs = env.reset()
             copy_env = copy.deepcopy(env)
-            copy_mgr = RouteManager(copy_env)
             while True:
-                obs_tensor, obs_info = mgr.obs_to_tensor(obs)
-                action = agent.get_action(obs_tensor, obs_info, False)
-                route = mgr.action_to_route(action)
-                obs, reward, is_done = env.step(route)
-    
-                _, obs_info = mgr.obs_to_tensor(obs)
-                agent.memory_trajectory(obs_info)
+                action = agent.get_action(obs, False)
+                obs, reward, is_done = env.step(action)
+                agent.memory_trajectory(obs)
 
                 if is_done:
                     agent.set_total_reward(reward)                    
@@ -50,10 +40,8 @@ for epoch in range(epochs_num):
             with torch.no_grad():
                 obs = copy_env.get_observation()
                 while True:
-                    obs_tensor, obs_info = copy_mgr.obs_to_tensor(obs)
-                    action = agent.get_action(obs_tensor, obs_info, True)
-                    route = copy_mgr.action_to_route(action)
-                    obs, reward, is_done = copy_env.step(route)
+                    action = agent.get_action(obs, True)
+                    obs, reward, is_done = copy_env.step(action)
     
                     if is_done:
                         agent.set_baseline(reward)

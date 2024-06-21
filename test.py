@@ -1,30 +1,30 @@
-import torch
+import random
+import numpy as np
 import configparser
 import time
 from tqdm import trange
 
 from dvrp.dvrp import DVRP
-from dvrp.route_manager import RouteManager
-from model.new_dynamic_attention_model.dynamic_attention_model import DynamicAttentionModel
 from agent.reinforce import REINFORCE
+from meta_heuristics.alns_agent import ALNS_Solver
+from meta_heuristics.ga import GA
+from meta_heuristics.bso_aco import BSO_ACO
 from utils.writer import Writer
-from agent.alns_agent import ALNS_Solver
-from agent.ga import GA
-from agent.bso_aco import BSO_ACO
+
+# random seed
+seed = 1024
+random.seed(seed)
+np.random.seed(seed)
 
 # load parameters
 config = configparser.ConfigParser()
 config.read("./config.cfg")
-test_config = config['test']
-test_instance = int(test_config["test_instance"])
-customer_num = int(config["instance"]["customer_num"])
+test_instance = int(config['test']["test_instance"])
 
-# init instance
+# initialize
 env = DVRP()
-mgr = RouteManager(env)
-model = DynamicAttentionModel(mgr.get_feature_dim())
-model.load_state_dict(torch.load('./model/new_dynamic_attention_model/parameter/50/origin.pth'))
-agent = REINFORCE(model, 0, 0)
+parameter_dir = './model/new_dynamic_attention_model/parameter/50/dynamic_3.pth'
+agent = REINFORCE(parameter_dir)
 writer = Writer(is_test=True)
 
 # testing
@@ -32,18 +32,9 @@ for i in trange(test_instance):
     start_time = time.time()
     obs = env.reset()
     while True:
-        obs_tensor, obs_info = mgr.obs_to_tensor(obs)
-        action = agent.get_action(obs_tensor, obs_info, True)
-        route = mgr.action_to_route(action)
-        obs, reward, is_done = env.step(route)
-
-
-        """
-        sol = ALNS_Solver(obs).run()
-        route = mgr.action_to_route(sol)
-        obs, reward, is_done = env.step(route)
-        
-        """
+        #action = agent.get_action(obs, True)
+        action = GA(obs).run()
+        obs, reward, is_done = env.step(action)
         
         if is_done:
             break

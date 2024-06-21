@@ -4,6 +4,7 @@ from dvrp.param.param_generator import ParamGenerator
 from dvrp.object.vehicle import Vehicle
 from dvrp.object.node import Depot, Customer
 from dvrp.object.network import Network
+from dvrp.object.route import Route
 
 config = configparser.ConfigParser()
 config.read("./config.cfg")
@@ -29,8 +30,9 @@ class DVRP:
 
         return self.get_observation()
 
-    def step(self, route_list):
-        self.move_vehicle(route_list)
+    def step(self, action):
+        route = self.action_to_route(action)
+        self.move_vehicle(route)
         self.update_travel_time()
 
         obs = self.get_observation()
@@ -38,6 +40,16 @@ class DVRP:
         reward = self.get_reward(is_done)
         
         return obs, reward, is_done
+
+    def action_to_route(self, action):
+        route = []
+        for row in action:
+            r = Route()
+            for id in row:
+                node = self.get_node(id)
+                r.add_node(node)
+            route.append(r)
+        return route
 
     def move_vehicle(self, route_list):
         latest_finish_time = 0
