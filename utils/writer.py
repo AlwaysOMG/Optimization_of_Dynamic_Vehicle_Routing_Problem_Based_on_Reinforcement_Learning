@@ -13,7 +13,7 @@ class Writer:
     
     def __init__(self, is_test=False):        
         if not is_test:
-            self.writer = SummaryWriter(log_dir=f"log/{self.customer_num}/{self.date}_{self.time}")
+            self.writer = SummaryWriter(log_dir=f"log/{self.date}_{self.time}")
         
         self.episode = 0
         self.step = 0

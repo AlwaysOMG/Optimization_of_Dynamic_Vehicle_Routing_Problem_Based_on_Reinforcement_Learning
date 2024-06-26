@@ -41,7 +41,7 @@ class DynamicAttentionModel(nn.Module):
         return route, prob
     
     def save_model(self, epoch):
-        torch.save(self.state_dict(), f"./model/new_dynamic_attention_model/parameter/{self.customer_num}/{self.embed_dim}_{self.num_layers}_{self.num_heads}_{epoch+1}.pth")
+        torch.save(self.state_dict(), f"./model/new_dynamic_attention_model/parameter/{epoch+1}.pth")
 
     def prob_forward(self, state, action):
         """
