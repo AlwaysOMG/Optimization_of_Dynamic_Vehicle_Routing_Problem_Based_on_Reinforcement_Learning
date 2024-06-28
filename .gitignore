@@ -153,4 +153,3 @@ cython_debug/
 
 # Customed
 /log
-/test_output

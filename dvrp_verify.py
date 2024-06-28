@@ -36,5 +36,6 @@ if __name__ == '__main__':
         action = generate_route_list(obs)
         obs, reward, done = env.step(action)
 
+    print(f"total cost: {-reward}")
     print([node.check_served() if node != env.get_depot() else None 
            for node in env.node_list])
