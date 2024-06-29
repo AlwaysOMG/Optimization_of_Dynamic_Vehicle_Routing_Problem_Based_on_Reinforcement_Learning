@@ -21,7 +21,11 @@ class Writer:
 
         self.episode_reward_list = []
         self.step_reward_list = []
-        self.test_cost_list = []
+        self.test_total_cost_list = []
+        self.test_travel_cost_list = []
+        self.test_penalty_cost_list = []
+        self.test_early_serivce_num_list = []
+        self.test_late_serivce_num_list = []
         self.test_time_list = []
 
     def episode_record(self, travel_time, penalty, reward):
@@ -44,13 +48,22 @@ class Writer:
         self.writer.add_scalar('epoch reward', r, self.epoch)
         self.step_reward_list = []
 
-    def test_record(self, cost, time):
-        self.test_cost_list.append(cost)
+    def test_record(self, total_cost, travel_cost, penalty_cost,
+                    early_serivce_num, late_servcie_num, time):
+        self.test_total_cost_list.append(total_cost)
+        self.test_travel_cost_list.append(travel_cost)
+        self.test_penalty_cost_list.append(penalty_cost)
+        self.test_early_serivce_num_list.append(early_serivce_num)
+        self.test_late_serivce_num_list.append(late_servcie_num)
         self.test_time_list.append(time)
     
     def test_csv(self):
-        data = list(zip(self.test_cost_list, self.test_time_list))
+        data = list(zip(self.test_total_cost_list, self.test_travel_cost_list,
+                        self.test_penalty_cost_list, self.test_early_serivce_num_list,
+                        self.test_late_serivce_num_list, self.test_time_list))
         with open('test_output.csv', mode='w', newline='') as file:
             writer = csv.writer(file)  
-            writer.writerow(['Cost', 'Time'])
+            writer.writerow(['Total cost', 'Travel cost', 'Penalty cost',
+                             'Number of customer served early', 
+                             'Number of customer served lately', 'Time'])
             writer.writerows(data)

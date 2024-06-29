@@ -112,3 +112,10 @@ class DVRP:
     
     def get_current_time(self):
         return self.current_time
+
+    def get_service_status(self):
+        return [node.get_service_status() if node != self.depot else None 
+                for node in self.node_list]
+    
+    def get_service_list(self):
+        return [vehicle.get_service_list() for vehicle in self.vehicle_list]

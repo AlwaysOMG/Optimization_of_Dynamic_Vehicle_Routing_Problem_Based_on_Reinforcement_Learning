@@ -12,6 +12,7 @@ class Vehicle:
         self.capacity = param.capacity
         self.current_node = dvrp.get_depot()
         self.target_node = None
+        self.service_list = [dvrp.get_depot()]
 
     def drive(self, start_time, time_interval):
         current_time = start_time
@@ -27,7 +28,7 @@ class Vehicle:
                 if self.target_node == None or self.current_node == self.target_node:
                     break
                 if self.target_node.get_id() != 0 and self.target_node.check_served():
-                    raise Exception("revisit")
+                    continue
                 #print(f"vehicle {self.id}: set to drive to {self.target_node.get_id()}")
 
                 self.road = self.dvrp.get_road(self.current_node, self.target_node)
@@ -73,6 +74,7 @@ class Vehicle:
         if self.capacity < 0:
             raise ValueError("capacity cant be smaller than 0")
         self.penalty += node.receive_service(current_time)
+        self.service_list.append(node)
 
     def set_route(self, route):
         self.route = route
@@ -99,3 +101,8 @@ class Vehicle:
                 else self.capacity
         
         return [loc, capacity]
+    
+    def get_service_list(self):
+        l = [node.get_id() for node in self.service_list]
+        l.append(0)
+        return l

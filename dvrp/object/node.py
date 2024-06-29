@@ -20,6 +20,7 @@ class Depot(Node):
 
 class Customer(Node):
     is_served = False
+    service_status = None
 
     def __init__(self, dvrp, param):
         super().__init__(dvrp, param)
@@ -33,10 +34,13 @@ class Customer(Node):
         self.is_served = True
 
         if arrive_time < self.earliest_service_time:
+            self.service_status = -1
             return self.early_penalty * (self.earliest_service_time - arrive_time)
         elif arrive_time > self.latest_service_time:
+            self.service_status = 1
             return self.late_penalty * (arrive_time - self.latest_service_time)
         else:
+            self.service_status = 0
             return 0
 
     def check_served(self):
@@ -49,3 +53,6 @@ class Customer(Node):
         return [self.x_loc, self.y_loc, self.demand, 
                 self.earliest_service_time, self.latest_service_time, 
                 self.early_penalty, self.late_penalty, self.is_served]
+    
+    def get_service_status(self):
+        return self.service_status
