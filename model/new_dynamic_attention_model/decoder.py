@@ -29,10 +29,10 @@ class Decoder(nn.Module):
 
     def __init__(self, embed_dim, num_heads, clip_c, device):
         super().__init__()
+        self.device = device
         self.combined_layer = nn.Linear(embed_dim*2+2, embed_dim)
         self.attn_layer = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
         self.prob_layer = ProbLayer(embed_dim, clip_c)
-        self.device = device
     
     def set_vehicle_info(self, vehicle_info):
         self.vehicle_info = copy.deepcopy(vehicle_info)

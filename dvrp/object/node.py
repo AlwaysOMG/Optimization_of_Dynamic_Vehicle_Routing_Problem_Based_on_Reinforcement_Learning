@@ -29,6 +29,7 @@ class Customer(Node):
         self.latest_service_time = param.latest_service_time
         self.early_penalty = param.early_penalty
         self.late_penalty = param.late_penalty
+        self.is_tight_time_window = True if self.latest_service_time - self.earliest_service_time <= 10 else False
     
     def receive_service(self, arrive_time):
         self.is_served = True
@@ -55,4 +56,4 @@ class Customer(Node):
                 self.early_penalty, self.late_penalty, self.is_served]
     
     def get_service_status(self):
-        return self.service_status
+        return (self.service_status, self.is_tight_time_window)

@@ -23,9 +23,9 @@ config.read("./config.cfg")
 test_instance = int(config['test']["test_instance"])
 
 # initialize
-env = DVRP()
 parameter_dir = './model/new_dynamic_attention_model/parameter/final.pth'
-agent = REINFORCE(parameter_dir)
+env = DVRP()
+#agent = REINFORCE(parameter_dir)
 writer = Writer(is_test=True)
 plotter = Plotter()
 
@@ -35,23 +35,20 @@ for i in trange(test_instance):
     start_time = time.time()
     obs = env.reset()
     while True:
-        action = agent.get_action(obs, True)
-        #action = ALNS_Solver(obs).run()
+        #action = agent.get_action(obs, True)
+        action = ALNS_Solver(obs).run()
         obs, reward, is_done = env.step(action)
         
         if is_done:
             break
     end_time = time.time()
     
-    service_status = env.get_service_status()
-    early_serivce_num = service_status.count(-1)
-    late_servcie_num = service_status.count(1)
-    writer.test_record(-reward, env.get_travel_cost(), env.get_penalty_cost(), 
-                       early_serivce_num, late_servcie_num, end_time-start_time)
-    
+    episode_travel_cost = env.get_travel_cost()
+    episode_penalty_cost = env.get_penalty_cost()
+    episode_service_status = env.get_service_status()
+    writer.test_record(-reward, episode_travel_cost, episode_penalty_cost, 
+                       episode_service_status, end_time-start_time)
     if is_plot:
         node_data = obs[1]
         vehicle_route = env.get_service_list()
-        plotter.plot(i, node_data, service_status, vehicle_route)
-
-writer.test_csv()
+        plotter.plot(i, node_data, episode_service_status, vehicle_route)

@@ -32,8 +32,10 @@ for epoch in range(epochs_num):
                 agent.memory_trajectory(obs)
 
                 if is_done:
-                    agent.set_total_reward(reward)                    
-                    writer.episode_record(env.get_travel_cost(), env.get_penalty_cost(), reward)
+                    agent.set_total_reward(reward)
+                    episode_travel_cost = env.get_travel_cost()
+                    episode_penalty_cost = env.get_penalty_cost()
+                    writer.episode_record(episode_travel_cost, episode_penalty_cost, reward)
                     break
             
             # baseline
