@@ -18,10 +18,10 @@ class DVRP:
     def __init__(self):
         self.param_generator = ParamGenerator()
     
-    def reset(self):
+    def reset(self, random_seed=None):
         self.current_time = 0
 
-        self.node_param, self.vehicle_param = self.param_generator.generate_parameter()      
+        self.node_param, self.vehicle_param = self.param_generator.generate_parameter(random_seed)      
         self.node_list = [Depot(self, self.node_param[0])] + \
             [Customer(self, p) for p in self.node_param[1:]]
         self.depot = self.node_list[0]

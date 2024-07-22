@@ -15,7 +15,7 @@ class Plotter:
         self.marker_dict = {False:'o', True:'*'}
         self.vehicle_route_color = ['yellow', 'magenta', 'deepskyblue', 'navy', 'springgreen']
 
-    def plot(self, instance_num, node_data, service_status, vehicle_route):
+    def plot(self, instance_id, node_data, service_status, vehicle_route):
         plt.figure(figsize=(self.plot_figure_size, self.plot_figure_size))
         plt.xlim(0, self.map_size)
         plt.ylim(0, self.map_size)
@@ -45,6 +45,6 @@ class Plotter:
         plt.grid(True)
         plt.xticks(size=self.map_size)
         plt.yticks(size=self.map_size)
-        plt.savefig(f"./output/route_pic/instance_{instance_num}.jpg", format='jpg', 
+        plt.savefig(f"./output/route_pic/instance_{instance_id}.jpg", format='jpg', 
                     bbox_inches='tight', dpi=self.plot_dpi)
         plt.close()

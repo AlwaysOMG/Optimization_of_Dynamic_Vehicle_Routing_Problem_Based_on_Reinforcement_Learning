@@ -22,7 +22,10 @@ class ParamGenerator:
         self.late_penalty_lower_limit = float(instance_config['late_penalty_lower_limit'])
         self.late_penalty_upper_limit = float(instance_config['late_penalty_upper_limit'])
 
-    def generate_parameter(self):
+    def generate_parameter(self, random_seed=None):
+        if random_seed != None:
+            random.seed(random_seed)
+        
         node_param_list = []
         for i in range(self.customer_num+1):
             x_loc = round(random.uniform(0, self.map_size), 3)

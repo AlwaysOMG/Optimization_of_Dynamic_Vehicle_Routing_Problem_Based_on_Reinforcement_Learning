@@ -56,4 +56,4 @@ class DynamicAttentionModel(nn.Module):
         return update_info
 
     def save_model(self, epoch):
-        torch.save(self.state_dict(), f"./model/peng_dynamic_attention_model/parameter/{epoch+1}.pth")
+        torch.save(self.state_dict(), f"./model/peng_dynamic_attention_model/parameter/{epoch+1+12}.pth")

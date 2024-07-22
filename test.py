@@ -21,22 +21,24 @@ np.random.seed(seed)
 config = configparser.ConfigParser()
 config.read("./config.cfg")
 test_instance = int(config['test']["test_instance"])
+test_instance_seed = random.sample(range(0, 1024), 100)
 
 # initialize
-parameter_dir = './model/new_dynamic_attention_model/parameter/final.pth'
+parameter_dir = './model/peng_dynamic_attention_model/parameter/final.pth'
 env = DVRP()
-#agent = REINFORCE(parameter_dir)
+agent = REINFORCE(parameter_dir)
 writer = Writer(is_test=True)
 plotter = Plotter()
 
 # testing
-is_plot = True
+is_plot = False
+is_instance_analysis = False
 for i in trange(test_instance):
     start_time = time.time()
-    obs = env.reset()
+    obs = env.reset(test_instance_seed[i])
     while True:
-        #action = agent.get_action(obs, True)
-        action = ALNS_Solver(obs).run()
+        action = agent.get_action(obs, True)
+        #action = ALNS_Solver(obs).run()
         obs, reward, is_done = env.step(action)
         
         if is_done:
@@ -52,3 +54,7 @@ for i in trange(test_instance):
         node_data = obs[1]
         vehicle_route = env.get_service_list()
         plotter.plot(i, node_data, episode_service_status, vehicle_route)
+    
+    if is_instance_analysis:
+        node_data = obs[1]
+        writer.instance_analysis(node_data)

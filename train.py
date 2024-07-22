@@ -16,7 +16,7 @@ steps_num = int(config['train']["steps_num"])
 
 # init instance
 env = DVRP()
-parameter_dir = './model/new_dynamic_attention_model/parameter/50/128_3_4_5.pth'
+parameter_dir = None
 agent = REINFORCE(parameter_dir, lr, batch_size)
 writer = Writer()
 
