@@ -24,7 +24,7 @@ test_instance = int(config['test']["test_instance"])
 test_instance_seed = random.sample(range(0, 1024), 100)
 
 # initialize
-parameter_dir = './model/peng_dynamic_attention_model/parameter/final.pth'
+parameter_dir = './model/new_dynamic_attention_model/parameter/final.pth'
 env = DVRP()
 agent = REINFORCE(parameter_dir)
 writer = Writer(is_test=True)
